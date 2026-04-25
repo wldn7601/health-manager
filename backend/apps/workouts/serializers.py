@@ -58,7 +58,7 @@ class WorkoutSetSerializer(serializers.ModelSerializer):
         model = WorkoutSet
         fields = (
             'id', 'session', 'exercise', 'exercise_name',
-            'set_number', 'weight', 'reps', 'set_type',
+            'set_number', 'weight', 'reps', 'set_type', 'group_id',
         )
         read_only_fields = ('session',)
 

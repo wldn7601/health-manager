@@ -33,6 +33,54 @@ function groupByExercise(sets) {
   return Object.entries(map)
 }
 
+function DropsetGroupRow({ sets, onDelete, onError }) {
+  const meta = SET_TYPE_LABELS[sets[0].set_type]
+  return (
+    <li className="py-1.5">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-sm text-slate-500">세트 {sets[0].set_number}</span>
+        {meta && <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${meta.color}`}>{meta.label}</span>}
+      </div>
+      <div className="space-y-0.5">
+        {sets.map((s, i) => (
+          <div key={s.id} className="flex items-center justify-between text-sm">
+            <span className="text-slate-600">
+              {i > 0 && <span className="text-slate-400 mr-1 text-xs">↓</span>}
+              {Number(s.weight)}kg × {s.reps}회
+            </span>
+            <button onClick={() => onDelete(s.id)} className="text-xs text-red-500 px-2 py-0.5 rounded hover:bg-red-50">삭제</button>
+          </div>
+        ))}
+      </div>
+    </li>
+  )
+}
+
+function ExerciseSetList({ sets, onUpdate, onDelete, onError }) {
+  const ungrouped = sets.filter((s) => s.group_id == null)
+  const groupedMap = {}
+  sets.filter((s) => s.group_id != null).forEach((s) => {
+    groupedMap[s.group_id] = groupedMap[s.group_id] || []
+    groupedMap[s.group_id].push(s)
+  })
+  const sortedGroupKeys = Object.keys(groupedMap).sort((a, b) => {
+    const minA = Math.min(...groupedMap[a].map((s) => s.set_number))
+    const minB = Math.min(...groupedMap[b].map((s) => s.set_number))
+    return minA - minB
+  })
+  return (
+    <ul className="divide-y divide-slate-100">
+      {ungrouped.sort((a, b) => a.set_number - b.set_number).map((set) => (
+        <SetRow key={set.id} set={set} onUpdate={onUpdate} onDelete={onDelete} onError={onError} />
+      ))}
+      {sortedGroupKeys.map((gid) => {
+        const groupSets = [...groupedMap[gid]].sort((a, b) => a.set_number - b.set_number)
+        return <DropsetGroupRow key={gid} sets={groupSets} onDelete={onDelete} onError={onError} />
+      })}
+    </ul>
+  )
+}
+
 function SetRow({ set, onUpdate, onDelete, onError }) {
   const [editing, setEditing] = useState(false)
   const [weight, setWeight] = useState(String(Number(set.weight)))
@@ -117,9 +165,7 @@ export default function Home() {
     const updated = await updateSet(id, { weight, reps, set_type })
     setSession((prev) => ({
       ...prev,
-      sets: prev.sets.map((s) =>
-        s.id === id ? { ...s, weight: updated.weight, reps: updated.reps, set_type: updated.set_type } : s,
-      ),
+      sets: prev.sets.map((s) => (s.id === id ? { ...s, ...updated } : s)),
     }))
   }
 
@@ -187,17 +233,12 @@ export default function Home() {
                   <span className="font-semibold">{name}</span>
                   <span className="text-xs text-slate-400">{sets.length}세트</span>
                 </div>
-                <ul className="divide-y divide-slate-100">
-                  {sets.map((set) => (
-                    <SetRow
-                      key={set.id}
-                      set={set}
-                      onUpdate={handleUpdateSet}
-                      onDelete={handleDeleteSet}
-                      onError={setError}
-                    />
-                  ))}
-                </ul>
+                <ExerciseSetList
+                  sets={sets}
+                  onUpdate={handleUpdateSet}
+                  onDelete={handleDeleteSet}
+                  onError={setError}
+                />
               </div>
             ))}
           </div>

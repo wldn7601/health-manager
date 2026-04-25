@@ -8,6 +8,7 @@ from .views import (
     ExerciseProgressView,
     ExerciseSearchView,
     ExerciseTipsView,
+    GroupedSetCreateView,
     WorkoutSessionListCreateView,
     WorkoutSetCreateView,
     WorkoutSetDetailView,
@@ -27,6 +28,11 @@ urlpatterns = [
         'sessions/<int:session_id>/sets/',
         WorkoutSetCreateView.as_view(),
         name='session-set-create',
+    ),
+    path(
+        'sessions/<int:session_id>/grouped_sets/',
+        GroupedSetCreateView.as_view(),
+        name='session-grouped-set-create',
     ),
     path('sets/<int:pk>/', WorkoutSetDetailView.as_view(), name='set-detail'),
     path(

@@ -182,6 +182,48 @@ class WorkoutSetCreateView(generics.CreateAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class GroupedSetCreateView(APIView):
+    """
+    POST /api/sessions/{id}/grouped_sets/
+    드랍세트/슈퍼세트/컴파운드세트: 여러 세트를 하나의 group_id로 묶어 생성.
+    body: { "group_type": "dropset", "sets": [{"exercise": 1, "weight": 100, "reps": 10}, ...] }
+    """
+
+    def post(self, request, session_id):
+        session = get_object_or_404(WorkoutSession, pk=session_id, user=request.user)
+        group_type = request.data.get('group_type')
+        sets_data = request.data.get('sets', [])
+
+        if not group_type or not sets_data:
+            return Response({'error': '필수 필드 누락'}, status=status.HTTP_400_BAD_REQUEST)
+
+        max_group = WorkoutSet.objects.filter(session=session).aggregate(
+            m=Max('group_id')
+        )['m'] or 0
+        group_id = max_group + 1
+
+        created = []
+        for s in sets_data:
+            exercise_id = s.get('exercise')
+            existing_count = WorkoutSet.objects.filter(
+                session=session, exercise_id=exercise_id
+            ).count()
+            ws = WorkoutSet.objects.create(
+                session=session,
+                exercise_id=exercise_id,
+                set_number=existing_count + 1,
+                weight=s['weight'],
+                reps=s['reps'],
+                set_type=group_type,
+                group_id=group_id,
+            )
+            created.append(ws)
+
+        from .serializers import WorkoutSetSerializer
+        serializer = WorkoutSetSerializer(created, many=True)
+        return Response({'group_id': group_id, 'sets': serializer.data}, status=status.HTTP_201_CREATED)
+
+
 class WorkoutTipCreateView(generics.CreateAPIView):
     """
     POST /api/sessions/{session_id}/tips/

@@ -41,6 +41,11 @@ export const createSet = (sessionId, { exercise, set_number, weight, reps, set_t
     .post(`/sessions/${sessionId}/sets/`, { exercise, set_number, weight, reps, set_type })
     .then((r) => r.data)
 
+export const createGroupedSets = (sessionId, { group_type, sets }) =>
+  client
+    .post(`/sessions/${sessionId}/grouped_sets/`, { group_type, sets })
+    .then((r) => r.data)
+
 export const createTip = (sessionId, { exercise, content }) =>
   client
     .post(`/sessions/${sessionId}/tips/`, { exercise, content })

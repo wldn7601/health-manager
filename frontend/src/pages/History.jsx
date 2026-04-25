@@ -35,9 +35,7 @@ export default function History() {
     setSessions((prev) =>
       prev.map((sess) => ({
         ...sess,
-        sets: sess.sets.map((s) =>
-          s.id === id ? { ...s, weight: updated.weight, reps: updated.reps, set_type: updated.set_type } : s,
-        ),
+        sets: sess.sets.map((s) => (s.id === id ? { ...s, ...updated } : s)),
       })),
     )
   }
@@ -184,6 +182,57 @@ function SetRow({ set, onUpdate, onDelete, onError }) {
   )
 }
 
+function DropsetGroupRow({ sets, onDelete, onError }) {
+  const meta = SET_TYPE_LABELS[sets[0].set_type]
+  return (
+    <li className="py-2 px-1">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-slate-500 text-sm">세트 {sets[0].set_number}</span>
+        {meta && <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${meta.color}`}>{meta.label}</span>}
+      </div>
+      <div className="space-y-0.5">
+        {sets.map((s, i) => (
+          <div key={s.id} className="flex items-center justify-between text-sm">
+            <span className="text-slate-600">
+              {i > 0 && <span className="text-slate-400 mr-1 text-xs">↓</span>}
+              {Number(s.weight)}kg × {s.reps}회
+            </span>
+            <button
+              onClick={async () => { try { await onDelete(s.id) } catch (e) { onError(String(e)) } }}
+              className="text-xs text-red-400 py-0.5 px-2"
+            >삭제</button>
+          </div>
+        ))}
+      </div>
+    </li>
+  )
+}
+
+function ExerciseSetList({ sets, onUpdate, onDelete, onError }) {
+  const ungrouped = sets.filter((s) => s.group_id == null)
+  const groupedMap = {}
+  sets.filter((s) => s.group_id != null).forEach((s) => {
+    groupedMap[s.group_id] = groupedMap[s.group_id] || []
+    groupedMap[s.group_id].push(s)
+  })
+  const sortedGroupKeys = Object.keys(groupedMap).sort((a, b) => {
+    const minA = Math.min(...groupedMap[a].map((s) => s.set_number))
+    const minB = Math.min(...groupedMap[b].map((s) => s.set_number))
+    return minA - minB
+  })
+  return (
+    <ul className="divide-y border rounded bg-slate-50">
+      {ungrouped.sort((a, b) => a.set_number - b.set_number).map((s) => (
+        <SetRow key={s.id} set={s} onUpdate={onUpdate} onDelete={onDelete} onError={onError} />
+      ))}
+      {sortedGroupKeys.map((gid) => {
+        const groupSets = [...groupedMap[gid]].sort((a, b) => a.set_number - b.set_number)
+        return <DropsetGroupRow key={gid} sets={groupSets} onDelete={onDelete} onError={onError} />
+      })}
+    </ul>
+  )
+}
+
 function SessionCard({ session, onUpdateSet, onDeleteSet, onError }) {
   const byExercise = session.sets.reduce((acc, st) => {
     const key = st.exercise
@@ -192,10 +241,7 @@ function SessionCard({ session, onUpdateSet, onDeleteSet, onError }) {
     return acc
   }, {})
 
-  const exercises = Object.values(byExercise).map((ex) => ({
-    ...ex,
-    sets: ex.sets.sort((a, b) => a.set_number - b.set_number),
-  }))
+  const exercises = Object.values(byExercise)
 
   if (exercises.length === 0) {
     return <p className="text-xs text-slate-400">세트 없음</p>
@@ -208,11 +254,12 @@ function SessionCard({ session, onUpdateSet, onDeleteSet, onError }) {
           <Link to={`/exercise/${ex.id}`} className="text-blue-600 font-medium block mb-1">
             {ex.name}
           </Link>
-          <ul className="divide-y border rounded bg-slate-50">
-            {ex.sets.map((s) => (
-              <SetRow key={s.id} set={s} onUpdate={onUpdateSet} onDelete={onDeleteSet} onError={onError} />
-            ))}
-          </ul>
+          <ExerciseSetList
+            sets={ex.sets}
+            onUpdate={onUpdateSet}
+            onDelete={onDeleteSet}
+            onError={onError}
+          />
         </li>
       ))}
     </ul>

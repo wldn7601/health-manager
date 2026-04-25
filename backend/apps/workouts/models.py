@@ -77,6 +77,7 @@ class WorkoutSet(models.Model):
     weight = models.DecimalField(max_digits=6, decimal_places=2)
     reps = models.PositiveSmallIntegerField()
     set_type = models.CharField(max_length=10, choices=SET_TYPE_CHOICES, default='normal')
+    group_id = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ['session', 'exercise', 'set_number']
