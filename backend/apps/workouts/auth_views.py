@@ -57,7 +57,8 @@ class DeployView(APIView):
         wsgi_file = Path('/var/www/wldn7601_pythonanywhere_com_wsgi.py')
 
         try:
-            subprocess.run(['git', 'pull', 'origin', 'deploy'], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(['git', 'fetch', 'origin', 'main'], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(['git', 'reset', '--hard', 'origin/main'], cwd=repo_root, check=True, capture_output=True)
             subprocess.run(
                 [str(venv_python), 'manage.py', 'migrate', '--noinput'],
                 cwd=repo_root / 'backend',

@@ -41,14 +41,13 @@ jobs:
           sed 's|="/assets/|="/static/assets/|g; s|="/vite.svg"|="/static/vite.svg"|g' \
             frontend/dist/index.html > backend/templates/index.html
 
-      - name: Push to deploy branch
+      - name: Commit & push artifacts to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -B deploy
           git add backend/staticfiles_src/ backend/templates/index.html
-          git diff --staged --quiet || git commit -m "build: update frontend artifacts"
-          git push origin deploy --force
+          git diff --staged --quiet || git commit -m "build: update frontend artifacts [skip ci]"
+          git push
 
       - name: Deploy to PythonAnywhere
         run: |
