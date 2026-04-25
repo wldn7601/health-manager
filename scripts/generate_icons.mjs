@@ -61,18 +61,24 @@ function createPNG(size) {
         continue
       }
 
-      // 덤벨 바 (가로 중앙)
-      const barTop = 0.44, barBot = 0.56, barLeft = 0.28, barRight = 0.72
-      // 왼쪽 원판
-      const lpLeft = 0.18, lpRight = 0.28, lpTop = 0.32, lpBot = 0.68
-      // 오른쪽 원판
-      const rpLeft = 0.72, rpRight = 0.82, rpTop = 0.32, rpBot = 0.68
+      // 덤벨 바 (얇게)
+      const barTop = 0.47, barBot = 0.53, barLeft = 0.26, barRight = 0.74
+      // 왼쪽 큰 원판
+      const lpLeft = 0.14, lpRight = 0.24, lpTop = 0.28, lpBot = 0.72
+      // 왼쪽 작은 원판 (안쪽)
+      const lp2Left = 0.24, lp2Right = 0.29, lp2Top = 0.35, lp2Bot = 0.65
+      // 오른쪽 큰 원판
+      const rpLeft = 0.76, rpRight = 0.86, rpTop = 0.28, rpBot = 0.72
+      // 오른쪽 작은 원판 (안쪽)
+      const rp2Left = 0.71, rp2Right = 0.76, rp2Top = 0.35, rp2Bot = 0.65
 
       const inBar = nx >= barLeft && nx <= barRight && ny >= barTop && ny <= barBot
       const inLP = nx >= lpLeft && nx <= lpRight && ny >= lpTop && ny <= lpBot
+      const inLP2 = nx >= lp2Left && nx <= lp2Right && ny >= lp2Top && ny <= lp2Bot
       const inRP = nx >= rpLeft && nx <= rpRight && ny >= rpTop && ny <= rpBot
+      const inRP2 = nx >= rp2Left && nx <= rp2Right && ny >= rp2Top && ny <= rp2Bot
 
-      if (inBar || inLP || inRP) {
+      if (inBar || inLP || inLP2 || inRP || inRP2) {
         row.push(...FG)
       } else {
         row.push(...BG)

@@ -1,3 +1,4 @@
+import hmac
 import os
 import subprocess
 from pathlib import Path
@@ -47,7 +48,8 @@ class DeployView(APIView):
 
     def post(self, request):
         token = request.headers.get('X-Deploy-Token', '')
-        if not token or token != os.getenv('DEPLOY_SECRET', ''):
+        secret = os.getenv('DEPLOY_SECRET', '')
+        if not token or not secret or not hmac.compare_digest(token, secret):
             return Response({'error': 'unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
 
         repo_root = Path(settings.BASE_DIR).parent

@@ -12,12 +12,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR.parent / '.env')
 
-SECRET_KEY = os.getenv(
-    'SECRET_KEY',
-    'django-insecure-ua767*x*wljo4nveuh5$w$$s^4tiv!ehk0^*=7gcro=1-20_b=',
-)
+SECRET_KEY = os.environ['SECRET_KEY']
 
-DEBUG = os.getenv('DEBUG', 'True').lower() in ('1', 'true', 'yes')
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('1', 'true', 'yes')
 
 ALLOWED_HOSTS = [
     h.strip() for h in os.getenv(
@@ -123,6 +120,8 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': False,
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
