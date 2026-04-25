@@ -16,7 +16,7 @@ db.sqlite3
 db.sqlite3-journal
 backend/static/
 backend/media/
-backend/staticfiles_src/assets/
+# backend/staticfiles_src/assets/ — 빌드 결과물, 배포에 필요해서 포함
 
 # React / Node
 node_modules/
@@ -26,8 +26,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Built React HTML copied into Django templates
-backend/templates/index.html
+# Built React HTML — 배포에 필요해서 포함
 
 # Env / secrets
 .env
