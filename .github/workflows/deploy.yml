@@ -1,54 +1,13 @@
-name: Build & Deploy
+name: Deploy
 
 on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
-
-      - name: Copy build artifacts
-        run: |
-          rm -rf backend/staticfiles_src/assets
-          mkdir -p backend/staticfiles_src/assets
-          cp -r frontend/dist/assets/. backend/staticfiles_src/assets/
-
-          find frontend/dist -maxdepth 1 -type f ! -name 'index.html' \
-            -exec cp {} backend/staticfiles_src/ \;
-
-          sed 's|="/assets/|="/static/assets/|g; s|="/vite.svg"|="/static/vite.svg"|g' \
-            frontend/dist/index.html > backend/templates/index.html
-
-      - name: Commit & push artifacts to main
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add backend/staticfiles_src/ backend/templates/index.html
-          git diff --staged --quiet || git commit -m "build: update frontend artifacts [skip ci]"
-          git push
-
       - name: Deploy to PythonAnywhere
         run: |
           curl -f -X POST https://wldn7601.pythonanywhere.com/api/deploy/ \

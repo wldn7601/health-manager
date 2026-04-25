@@ -1,5 +1,6 @@
 import hmac
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -56,9 +57,32 @@ class DeployView(APIView):
         venv_python = repo_root / 'backend' / 'venv' / 'bin' / 'python'
         wsgi_file = Path('/var/www/wldn7601_pythonanywhere_com_wsgi.py')
 
+        frontend_dir = repo_root / 'frontend'
+        dist_dir = frontend_dir / 'dist'
+        staticfiles_src = repo_root / 'backend' / 'staticfiles_src'
+        templates_dir = repo_root / 'backend' / 'templates'
+
         try:
             subprocess.run(['git', 'fetch', 'origin', 'main'], cwd=repo_root, check=True, capture_output=True)
             subprocess.run(['git', 'reset', '--hard', 'origin/main'], cwd=repo_root, check=True, capture_output=True)
+
+            subprocess.run(['bash', '-lc', 'npm ci'], cwd=frontend_dir, check=True, capture_output=True)
+            subprocess.run(['bash', '-lc', 'npm run build'], cwd=frontend_dir, check=True, capture_output=True)
+
+            assets_dst = staticfiles_src / 'assets'
+            if assets_dst.exists():
+                shutil.rmtree(assets_dst)
+            shutil.copytree(dist_dir / 'assets', assets_dst)
+
+            for f in dist_dir.iterdir():
+                if f.is_file() and f.name != 'index.html':
+                    shutil.copy2(f, staticfiles_src / f.name)
+
+            index_content = (dist_dir / 'index.html').read_text()
+            index_content = index_content.replace('="/assets/', '="/static/assets/')
+            index_content = index_content.replace('="/vite.svg"', '="/static/vite.svg"')
+            (templates_dir / 'index.html').write_text(index_content)
+
             subprocess.run(
                 [str(venv_python), 'manage.py', 'migrate', '--noinput'],
                 cwd=repo_root / 'backend',
