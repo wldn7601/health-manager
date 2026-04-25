@@ -45,7 +45,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase
+          git pull --rebase --autostash
           git add backend/staticfiles_src/ backend/templates/index.html
           git diff --staged --quiet || git commit -m "build: update frontend artifacts [skip ci]"
           git push
