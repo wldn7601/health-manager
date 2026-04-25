@@ -1,14 +1,55 @@
-name: Deploy to PythonAnywhere
+name: Build & Deploy
 
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger deploy webhook
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Copy build artifacts
+        run: |
+          # assets
+          rm -rf backend/staticfiles_src/assets
+          mkdir -p backend/staticfiles_src/assets
+          cp -r frontend/dist/assets/. backend/staticfiles_src/assets/
+
+          # dist 루트 파일 (아이콘 등, index.html 제외)
+          find frontend/dist -maxdepth 1 -type f ! -name 'index.html' \
+            -exec cp {} backend/staticfiles_src/ \;
+
+          # index.html: /assets/ → /static/assets/ 경로 치환
+          sed 's|="/assets/|="/static/assets/|g; s|="/vite.svg"|="/static/vite.svg"|g' \
+            frontend/dist/index.html > backend/templates/index.html
+
+      - name: Commit & push artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backend/staticfiles_src/ backend/templates/index.html
+          git diff --staged --quiet || git commit -m "build: update frontend artifacts [skip ci]"
+          git push
+
+      - name: Deploy to PythonAnywhere
         run: |
           curl -f -X POST https://wldn7601.pythonanywhere.com/api/deploy/ \
             -H "X-Deploy-Token: ${{ secrets.DEPLOY_SECRET }}"
