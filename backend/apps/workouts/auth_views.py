@@ -63,7 +63,7 @@ class DeployView(APIView):
         templates_dir = repo_root / 'backend' / 'templates'
 
         try:
-            subprocess.run(['git', 'fetch', 'origin', 'main'], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(['git', 'fetch', 'origin'], cwd=repo_root, check=True, capture_output=True)
             subprocess.run(['git', 'reset', '--hard', 'origin/main'], cwd=repo_root, check=True, capture_output=True)
 
             subprocess.run(['bash', '-lc', 'npm ci'], cwd=frontend_dir, check=True, capture_output=True)
