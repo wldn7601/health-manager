@@ -60,6 +60,10 @@ class DeployView(APIView):
             subprocess.run(['git', 'fetch', 'origin'], cwd=repo_root, check=True, capture_output=True)
             subprocess.run(['git', 'reset', '--hard', 'origin/main'], cwd=repo_root, check=True, capture_output=True)
             subprocess.run(
+                ['find', str(repo_root / 'backend'), '-name', '*.pyc', '-delete'],
+                check=True, capture_output=True,
+            )
+            subprocess.run(
                 [str(venv_python), 'manage.py', 'migrate', '--noinput'],
                 cwd=repo_root / 'backend',
                 check=True,
