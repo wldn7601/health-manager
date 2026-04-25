@@ -60,6 +60,13 @@ class WorkoutSession(models.Model):
 
 
 class WorkoutSet(models.Model):
+    SET_TYPE_CHOICES = [
+        ('normal', '일반'),
+        ('dropset', '드랍세트'),
+        ('superset', '슈퍼세트'),
+        ('compound', '컴파운드세트'),
+    ]
+
     session = models.ForeignKey(
         WorkoutSession, on_delete=models.CASCADE, related_name='sets'
     )
@@ -69,6 +76,7 @@ class WorkoutSet(models.Model):
     set_number = models.PositiveSmallIntegerField()
     weight = models.DecimalField(max_digits=6, decimal_places=2)
     reps = models.PositiveSmallIntegerField()
+    set_type = models.CharField(max_length=10, choices=SET_TYPE_CHOICES, default='normal')
 
     class Meta:
         ordering = ['session', 'exercise', 'set_number']

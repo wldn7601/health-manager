@@ -59,6 +59,12 @@ class DeployView(APIView):
         try:
             subprocess.run(['git', 'pull', 'origin', 'deploy'], cwd=repo_root, check=True, capture_output=True)
             subprocess.run(
+                [str(venv_python), 'manage.py', 'migrate', '--noinput'],
+                cwd=repo_root / 'backend',
+                check=True,
+                capture_output=True,
+            )
+            subprocess.run(
                 [str(venv_python), 'manage.py', 'collectstatic', '--noinput'],
                 cwd=repo_root / 'backend',
                 check=True,

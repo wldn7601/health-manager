@@ -30,13 +30,13 @@ export default function History() {
       .finally(() => setLoading(false))
   }, [range])
 
-  const handleUpdateSet = async (id, { weight, reps }) => {
-    const updated = await updateSet(id, { weight, reps })
+  const handleUpdateSet = async (id, { weight, reps, set_type }) => {
+    const updated = await updateSet(id, { weight, reps, set_type })
     setSessions((prev) =>
       prev.map((sess) => ({
         ...sess,
         sets: sess.sets.map((s) =>
-          s.id === id ? { ...s, weight: updated.weight, reps: updated.reps } : s,
+          s.id === id ? { ...s, weight: updated.weight, reps: updated.reps, set_type: updated.set_type } : s,
         ),
       })),
     )
@@ -102,15 +102,47 @@ export default function History() {
   )
 }
 
+const SET_TYPES = [
+  { value: 'normal', label: '일반' },
+  { value: 'dropset', label: '드랍세트' },
+  { value: 'superset', label: '슈퍼세트' },
+  { value: 'compound', label: '컴파운드세트' },
+]
+
+const SET_TYPE_LABELS = {
+  normal: null,
+  dropset: { label: '드랍', color: 'bg-orange-100 text-orange-600' },
+  superset: { label: '슈퍼', color: 'bg-purple-100 text-purple-600' },
+  compound: { label: '컴파운드', color: 'bg-green-100 text-green-700' },
+}
+
+function SetTypeBadge({ type }) {
+  const meta = SET_TYPE_LABELS[type]
+  if (!meta) return null
+  return (
+    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${meta.color}`}>{meta.label}</span>
+  )
+}
+
 function SetRow({ set, onUpdate, onDelete, onError }) {
   const [editing, setEditing] = useState(false)
   const [weight, setWeight] = useState(String(Number(set.weight)))
   const [reps, setReps] = useState(String(set.reps))
+  const [setType, setSetType] = useState(set.set_type || 'normal')
   const [saving, setSaving] = useState(false)
 
   if (editing) {
     return (
       <li className="py-2">
+        <div className="flex gap-1 flex-wrap mb-2">
+          {SET_TYPES.map((t) => (
+            <button key={t.value} type="button" onClick={() => setSetType(t.value)}
+              className={`px-2 py-0.5 rounded-full text-xs border transition ${
+                setType === t.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300'
+              }`}
+            >{t.label}</button>
+          ))}
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-slate-500 text-sm shrink-0">세트 {set.set_number}</span>
           <input type="number" step="0.5" value={weight} onChange={(e) => setWeight(e.target.value)}
@@ -119,13 +151,12 @@ function SetRow({ set, onUpdate, onDelete, onError }) {
           <input type="number" value={reps} onChange={(e) => setReps(e.target.value)}
             className="w-16 px-2 py-1.5 border rounded text-sm" />
           <span className="text-xs text-slate-400">회</span>
-          <button
-            disabled={saving}
+          <button disabled={saving}
             onClick={async () => {
               const w = parseFloat(weight), r = parseInt(reps, 10)
               if (Number.isNaN(w) || Number.isNaN(r) || r <= 0) { onError('올바른 값을 입력해주세요.'); return }
               setSaving(true)
-              try { await onUpdate(set.id, { weight: w, reps: r }); setEditing(false) }
+              try { await onUpdate(set.id, { weight: w, reps: r, set_type: setType }); setEditing(false) }
               catch (e) { onError(String(e)) }
               finally { setSaving(false) }
             }}
@@ -139,17 +170,15 @@ function SetRow({ set, onUpdate, onDelete, onError }) {
 
   return (
     <li className="py-2 flex items-center justify-between">
-      <span className="text-slate-500 text-sm">세트 {set.set_number}</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-slate-500 text-sm">세트 {set.set_number}</span>
+        <SetTypeBadge type={set.set_type} />
+      </div>
       <div className="flex items-center gap-3">
         <span className="text-sm">{Number(set.weight)}kg × {set.reps}회</span>
         <button onClick={() => setEditing(true)} className="text-xs text-blue-500 py-1 px-2">수정</button>
-        <button
-          onClick={async () => {
-            try { await onDelete(set.id) }
-            catch (e) { onError(String(e)) }
-          }}
-          className="text-xs text-red-400 py-1 px-2"
-        >삭제</button>
+        <button onClick={async () => { try { await onDelete(set.id) } catch (e) { onError(String(e)) } }}
+          className="text-xs text-red-400 py-1 px-2">삭제</button>
       </div>
     </li>
   )

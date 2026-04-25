@@ -36,14 +36,9 @@ export const fetchSessions = ({ date, start, end } = {}) => {
 export const createSession = ({ date }) =>
   client.post('/sessions/', { date }).then((r) => r.data)
 
-export const createSet = (sessionId, { exercise, set_number, weight, reps }) =>
+export const createSet = (sessionId, { exercise, set_number, weight, reps, set_type = 'normal' }) =>
   client
-    .post(`/sessions/${sessionId}/sets/`, {
-      exercise,
-      set_number,
-      weight,
-      reps,
-    })
+    .post(`/sessions/${sessionId}/sets/`, { exercise, set_number, weight, reps, set_type })
     .then((r) => r.data)
 
 export const createTip = (sessionId, { exercise, content }) =>
@@ -56,8 +51,8 @@ export const fetchExerciseProgress = (id, period = '3m') =>
     .get(`/exercises/${id}/progress/`, { params: { period } })
     .then((r) => r.data)
 
-export const updateSet = (id, { weight, reps }) =>
-  client.patch(`/sets/${id}/`, { weight, reps }).then((r) => r.data)
+export const updateSet = (id, { weight, reps, set_type }) =>
+  client.patch(`/sets/${id}/`, { weight, reps, set_type }).then((r) => r.data)
 
 export const deleteSet = (id) =>
   client.delete(`/sets/${id}/`)
