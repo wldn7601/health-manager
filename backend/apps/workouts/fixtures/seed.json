@@ -1,0 +1,87 @@
+[
+  { "model": "workouts.category", "pk": 1, "fields": { "name": "하체" } },
+  { "model": "workouts.category", "pk": 2, "fields": { "name": "팔" } },
+  { "model": "workouts.category", "pk": 3, "fields": { "name": "등" } },
+  { "model": "workouts.category", "pk": 4, "fields": { "name": "가슴" } },
+  { "model": "workouts.category", "pk": 5, "fields": { "name": "어깨" } },
+
+  { "model": "workouts.exercise", "pk": 1, "fields": { "category": 1, "canonical_name": "바벨 스쿼트", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 2, "fields": { "category": 1, "canonical_name": "레그 프레스", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 3, "fields": { "category": 1, "canonical_name": "루마니안 데드리프트", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 4, "fields": { "category": 1, "canonical_name": "레그 익스텐션", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 5, "fields": { "category": 1, "canonical_name": "레그 컬", "created_at": "2026-04-23T00:00:00Z" } },
+
+  { "model": "workouts.exercise", "pk": 10, "fields": { "category": 2, "canonical_name": "바벨 컬", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 11, "fields": { "category": 2, "canonical_name": "덤벨 컬", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 12, "fields": { "category": 2, "canonical_name": "케이블 푸시다운", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 13, "fields": { "category": 2, "canonical_name": "해머 컬", "created_at": "2026-04-23T00:00:00Z" } },
+
+  { "model": "workouts.exercise", "pk": 20, "fields": { "category": 3, "canonical_name": "랫 풀다운", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 21, "fields": { "category": 3, "canonical_name": "바벨 로우", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 22, "fields": { "category": 3, "canonical_name": "시티드 로우", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 23, "fields": { "category": 3, "canonical_name": "풀업", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 24, "fields": { "category": 3, "canonical_name": "데드리프트", "created_at": "2026-04-23T00:00:00Z" } },
+
+  { "model": "workouts.exercise", "pk": 30, "fields": { "category": 4, "canonical_name": "벤치 프레스", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 31, "fields": { "category": 4, "canonical_name": "인클라인 벤치 프레스", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 32, "fields": { "category": 4, "canonical_name": "덤벨 플라이", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 33, "fields": { "category": 4, "canonical_name": "체스트 프레스 머신", "created_at": "2026-04-23T00:00:00Z" } },
+
+  { "model": "workouts.exercise", "pk": 40, "fields": { "category": 5, "canonical_name": "오버헤드 프레스", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 41, "fields": { "category": 5, "canonical_name": "사이드 레터럴 레이즈", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 42, "fields": { "category": 5, "canonical_name": "페이스 풀", "created_at": "2026-04-23T00:00:00Z" } },
+  { "model": "workouts.exercise", "pk": 43, "fields": { "category": 5, "canonical_name": "리어 델트 플라이", "created_at": "2026-04-23T00:00:00Z" } },
+
+  { "model": "workouts.exercisealias", "pk": 1, "fields": { "exercise": 1, "alias": "바벨 스쿼트" } },
+  { "model": "workouts.exercisealias", "pk": 2, "fields": { "exercise": 1, "alias": "백 스쿼트" } },
+  { "model": "workouts.exercisealias", "pk": 3, "fields": { "exercise": 1, "alias": "스쿼트" } },
+
+  { "model": "workouts.exercisealias", "pk": 4, "fields": { "exercise": 2, "alias": "레그 프레스" } },
+  { "model": "workouts.exercisealias", "pk": 5, "fields": { "exercise": 2, "alias": "레그프레스 머신" } },
+
+  { "model": "workouts.exercisealias", "pk": 6, "fields": { "exercise": 3, "alias": "루마니안 데드리프트" } },
+  { "model": "workouts.exercisealias", "pk": 7, "fields": { "exercise": 3, "alias": "RDL" } },
+
+  { "model": "workouts.exercisealias", "pk": 8, "fields": { "exercise": 4, "alias": "레그 익스텐션" } },
+  { "model": "workouts.exercisealias", "pk": 9, "fields": { "exercise": 5, "alias": "레그 컬" } },
+
+  { "model": "workouts.exercisealias", "pk": 10, "fields": { "exercise": 10, "alias": "바벨 컬" } },
+  { "model": "workouts.exercisealias", "pk": 11, "fields": { "exercise": 10, "alias": "바벨컬" } },
+  { "model": "workouts.exercisealias", "pk": 12, "fields": { "exercise": 11, "alias": "덤벨 컬" } },
+  { "model": "workouts.exercisealias", "pk": 13, "fields": { "exercise": 11, "alias": "덤벨컬" } },
+  { "model": "workouts.exercisealias", "pk": 14, "fields": { "exercise": 12, "alias": "케이블 푸시다운" } },
+  { "model": "workouts.exercisealias", "pk": 15, "fields": { "exercise": 12, "alias": "트라이셉스 푸시다운" } },
+  { "model": "workouts.exercisealias", "pk": 16, "fields": { "exercise": 13, "alias": "해머 컬" } },
+
+  { "model": "workouts.exercisealias", "pk": 20, "fields": { "exercise": 20, "alias": "랫 풀다운" } },
+  { "model": "workouts.exercisealias", "pk": 21, "fields": { "exercise": 20, "alias": "랫풀다운" } },
+  { "model": "workouts.exercisealias", "pk": 22, "fields": { "exercise": 21, "alias": "바벨 로우" } },
+  { "model": "workouts.exercisealias", "pk": 23, "fields": { "exercise": 21, "alias": "벤트오버 로우" } },
+  { "model": "workouts.exercisealias", "pk": 24, "fields": { "exercise": 22, "alias": "시티드 로우" } },
+  { "model": "workouts.exercisealias", "pk": 25, "fields": { "exercise": 22, "alias": "시티드 케이블 로우" } },
+  { "model": "workouts.exercisealias", "pk": 26, "fields": { "exercise": 23, "alias": "풀업" } },
+  { "model": "workouts.exercisealias", "pk": 27, "fields": { "exercise": 23, "alias": "턱걸이" } },
+  { "model": "workouts.exercisealias", "pk": 28, "fields": { "exercise": 24, "alias": "데드리프트" } },
+  { "model": "workouts.exercisealias", "pk": 29, "fields": { "exercise": 24, "alias": "컨벤셔널 데드리프트" } },
+
+  { "model": "workouts.exercisealias", "pk": 30, "fields": { "exercise": 30, "alias": "벤치 프레스" } },
+  { "model": "workouts.exercisealias", "pk": 31, "fields": { "exercise": 30, "alias": "바벨 벤치 프레스" } },
+  { "model": "workouts.exercisealias", "pk": 32, "fields": { "exercise": 30, "alias": "플랫 벤치 프레스" } },
+  { "model": "workouts.exercisealias", "pk": 33, "fields": { "exercise": 31, "alias": "인클라인 벤치 프레스" } },
+  { "model": "workouts.exercisealias", "pk": 34, "fields": { "exercise": 31, "alias": "인클라인 바벨 프레스" } },
+  { "model": "workouts.exercisealias", "pk": 35, "fields": { "exercise": 31, "alias": "인클라인 프레스" } },
+  { "model": "workouts.exercisealias", "pk": 36, "fields": { "exercise": 32, "alias": "덤벨 플라이" } },
+  { "model": "workouts.exercisealias", "pk": 37, "fields": { "exercise": 32, "alias": "체스트 플라이" } },
+  { "model": "workouts.exercisealias", "pk": 38, "fields": { "exercise": 33, "alias": "체스트 프레스 머신" } },
+  { "model": "workouts.exercisealias", "pk": 39, "fields": { "exercise": 33, "alias": "체스트 프레스" } },
+
+  { "model": "workouts.exercisealias", "pk": 40, "fields": { "exercise": 40, "alias": "오버헤드 프레스" } },
+  { "model": "workouts.exercisealias", "pk": 41, "fields": { "exercise": 40, "alias": "숄더 프레스" } },
+  { "model": "workouts.exercisealias", "pk": 42, "fields": { "exercise": 40, "alias": "OHP" } },
+  { "model": "workouts.exercisealias", "pk": 43, "fields": { "exercise": 41, "alias": "사이드 레터럴 레이즈" } },
+  { "model": "workouts.exercisealias", "pk": 44, "fields": { "exercise": 41, "alias": "레터럴 레이즈" } },
+  { "model": "workouts.exercisealias", "pk": 45, "fields": { "exercise": 41, "alias": "사레레" } },
+  { "model": "workouts.exercisealias", "pk": 46, "fields": { "exercise": 42, "alias": "페이스 풀" } },
+  { "model": "workouts.exercisealias", "pk": 47, "fields": { "exercise": 43, "alias": "리어 델트 플라이" } },
+  { "model": "workouts.exercisealias", "pk": 48, "fields": { "exercise": 43, "alias": "리어 델토이드" } }
+]

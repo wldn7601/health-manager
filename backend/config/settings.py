@@ -3,6 +3,7 @@ Django settings for config project.
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -35,6 +36,8 @@ INSTALLED_APPS = [
 
     'corsheaders',
     'rest_framework',
+
+    'apps.workouts',
 ]
 
 MIDDLEWARE = [
@@ -109,7 +112,17 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
 }
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

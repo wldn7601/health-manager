@@ -1,40 +1,161 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import Home from './pages/Home'
+import Login from './pages/Login'
+import Record from './pages/Record'
+import History from './pages/History'
+import ExerciseDetail from './pages/ExerciseDetail'
+import Progress from './pages/Progress'
+
+const isLoggedIn = () => !!localStorage.getItem('access')
+
+function RequireAuth({ children }) {
+  if (!isLoggedIn()) return <Navigate to="/" replace />
+  return children
+}
+
+const TABS = [
+  {
+    to: '/home',
+    label: '홈',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
+    to: '/record',
+    label: '기록',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+    ),
+  },
+  {
+    to: '/history',
+    label: '히스토리',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+    ),
+  },
+  {
+    to: '/progress',
+    label: '추이',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+    ),
+  },
+]
+
+function BottomNav() {
+  return (
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-white border-t z-20"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="flex max-w-2xl mx-auto">
+        {TABS.map((tab) => (
+          <NavLink
+            key={tab.to}
+            to={tab.to}
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs transition-colors ${
+                isActive ? 'text-blue-600' : 'text-slate-400'
+              }`
+            }
+            style={{ minHeight: '56px' }}
+          >
+            {tab.icon}
+            <span>{tab.label}</span>
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
+function AppShell() {
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    localStorage.removeItem('access')
+    localStorage.removeItem('refresh')
+    navigate('/', { replace: true })
+  }
+
+  return (
+    <div
+      className="min-h-screen flex flex-col bg-slate-50 text-slate-900"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
+      <header className="bg-white border-b px-4 py-3 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <span className="text-base font-bold">헬스 매니저</span>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-slate-400 hover:text-slate-700 py-2 px-3"
+          >
+            로그아웃
+          </button>
+        </div>
+      </header>
+
+      {/* pb-20: 하단 탭 바(56px) + 여유 공간 */}
+      <main className="flex-1 max-w-2xl mx-auto w-full p-4 pb-24">
+        <Routes>
+          <Route path="/home" element={<Home />} />
+          <Route path="/record" element={<Record />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/exercise/:id" element={<ExerciseDetail />} />
+          <Route path="/progress" element={<Progress />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+
+      <BottomNav />
+    </div>
+  )
+}
+
+function NotFound() {
+  return (
+    <section>
+      <h1 className="text-2xl font-bold mb-2">404</h1>
+      <p className="text-slate-500">페이지를 찾을 수 없습니다.</p>
+    </section>
+  )
+}
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-full bg-slate-50 text-slate-900">
-        <header className="bg-white border-b px-6 py-4 sticky top-0 z-10">
-          <nav className="max-w-2xl mx-auto flex items-center justify-between">
-            <Link to="/" className="text-lg font-bold">헬스 매니저</Link>
-            <div className="flex gap-4 text-sm">
-              <Link to="/record" className="hover:text-blue-600">기록</Link>
-              <Link to="/history" className="hover:text-blue-600">히스토리</Link>
-              <Link to="/progress" className="hover:text-blue-600">추이</Link>
-            </div>
-          </nav>
-        </header>
-        <main className="max-w-2xl mx-auto p-6">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/record" element={<Placeholder title="운동 기록" />} />
-            <Route path="/history" element={<Placeholder title="히스토리" />} />
-            <Route path="/progress" element={<Placeholder title="성장 추이" />} />
-            <Route path="*" element={<Placeholder title="404" />} />
-          </Routes>
-        </main>
-      </div>
+      <Routes>
+        <Route
+          path="/"
+          element={isLoggedIn() ? <Navigate to="/record" replace /> : <Login />}
+        />
+        <Route
+          path="/login"
+          element={isLoggedIn() ? <Navigate to="/record" replace /> : <Login />}
+        />
+        <Route
+          path="/*"
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        />
+      </Routes>
     </BrowserRouter>
-  )
-}
-
-function Placeholder({ title }) {
-  return (
-    <section>
-      <h1 className="text-2xl font-bold mb-2">{title}</h1>
-      <p className="text-slate-500">Phase 1에서 구현 예정</p>
-    </section>
   )
 }
 
