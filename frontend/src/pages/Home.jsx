@@ -33,7 +33,52 @@ function groupByExercise(sets) {
   return Object.entries(map)
 }
 
-function DropsetGroupRow({ sets, onDelete, onError }) {
+function DropRow({ set, index, onUpdate, onDelete, onError }) {
+  const [editing, setEditing] = useState(false)
+  const [weight, setWeight] = useState(String(Number(set.weight)))
+  const [reps, setReps] = useState(String(set.reps))
+  const [saving, setSaving] = useState(false)
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5 text-sm flex-wrap">
+        {index > 0 && <span className="text-slate-400 text-xs">↓</span>}
+        <input type="number" step="0.5" value={weight} onChange={(e) => setWeight(e.target.value)}
+          className="w-20 px-2 py-1 border rounded text-sm" />
+        <span className="text-slate-400 text-xs">kg</span>
+        <input type="number" value={reps} onChange={(e) => setReps(e.target.value)}
+          className="w-14 px-2 py-1 border rounded text-sm" />
+        <span className="text-slate-400 text-xs">회</span>
+        <button disabled={saving}
+          onClick={async () => {
+            const w = parseFloat(weight), r = parseInt(reps, 10)
+            if (Number.isNaN(w) || Number.isNaN(r) || r <= 0) { onError('올바른 값을 입력해주세요.'); return }
+            setSaving(true)
+            try { await onUpdate(set.id, { weight: w, reps: r, set_type: set.set_type }); setEditing(false) }
+            catch (e) { onError(String(e)) }
+            finally { setSaving(false) }
+          }}
+          className="text-xs bg-blue-600 text-white px-2 py-1 rounded disabled:bg-slate-300">저장</button>
+        <button onClick={() => setEditing(false)} className="text-xs border px-2 py-1 rounded text-slate-600">취소</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-slate-600">
+        {index > 0 && <span className="text-slate-400 mr-1 text-xs">↓</span>}
+        {Number(set.weight)}kg × {set.reps}회
+      </span>
+      <div className="flex gap-1">
+        <button onClick={() => setEditing(true)} className="text-xs text-blue-600 px-2 py-0.5 rounded hover:bg-blue-50">수정</button>
+        <button onClick={() => onDelete(set.id)} className="text-xs text-red-500 px-2 py-0.5 rounded hover:bg-red-50">삭제</button>
+      </div>
+    </div>
+  )
+}
+
+function DropsetGroupRow({ sets, onUpdate, onDelete, onError }) {
   const meta = SET_TYPE_LABELS[sets[0].set_type]
   return (
     <li className="py-1.5">
@@ -41,15 +86,9 @@ function DropsetGroupRow({ sets, onDelete, onError }) {
         <span className="text-sm text-slate-500">세트 {sets[0].set_number}</span>
         {meta && <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${meta.color}`}>{meta.label}</span>}
       </div>
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {sets.map((s, i) => (
-          <div key={s.id} className="flex items-center justify-between text-sm">
-            <span className="text-slate-600">
-              {i > 0 && <span className="text-slate-400 mr-1 text-xs">↓</span>}
-              {Number(s.weight)}kg × {s.reps}회
-            </span>
-            <button onClick={() => onDelete(s.id)} className="text-xs text-red-500 px-2 py-0.5 rounded hover:bg-red-50">삭제</button>
-          </div>
+          <DropRow key={s.id} set={s} index={i} onUpdate={onUpdate} onDelete={onDelete} onError={onError} />
         ))}
       </div>
     </li>
@@ -75,7 +114,7 @@ function ExerciseSetList({ sets, onUpdate, onDelete, onError }) {
       ))}
       {sortedGroupKeys.map((gid) => {
         const groupSets = [...groupedMap[gid]].sort((a, b) => a.set_number - b.set_number)
-        return <DropsetGroupRow key={gid} sets={groupSets} onDelete={onDelete} onError={onError} />
+        return <DropsetGroupRow key={gid} sets={groupSets} onUpdate={onUpdate} onDelete={onDelete} onError={onError} />
       })}
     </ul>
   )
