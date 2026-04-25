@@ -3,7 +3,7 @@
 헬스장에서 폰으로 쓰는 운동 기록 앱입니다.  
 세트마다 중량과 횟수를 기록하고, 나중에 그래프로 성장 추이를 확인할 수 있습니다.
 
-**라이브**: [wldn7601.store](https://wldn7601.store)
+**라이브**: [wldn7601.pythonanywhere.com](https://wldn7601.pythonanywhere.com/)
 
 ---
 
@@ -88,6 +88,7 @@ bash scripts/build_and_copy.sh
 ```
 
 이 스크립트가 하는 일:
+
 1. `frontend/` 빌드
 2. 빌드 결과물을 `backend/staticfiles_src/` 에 복사
 3. `index.html` 의 정적 파일 경로를 Django용으로 수정
@@ -117,15 +118,15 @@ bash scripts/build_and_copy.sh
 
 인증이 필요한 엔드포인트는 `Authorization: Bearer <access_token>` 헤더를 사용합니다.
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| POST | `/api/auth/register/` | 회원가입 |
-| POST | `/api/auth/token/` | 로그인 |
-| POST | `/api/auth/token/refresh/` | 토큰 갱신 |
-| GET | `/api/sessions/` | 세션 목록 (날짜 필터 가능) |
-| POST | `/api/sessions/` | 세션 생성 (날짜 기준 get_or_create) |
-| POST | `/api/sessions/{id}/sets/` | 세트 추가 |
-| PATCH | `/api/sets/{id}/` | 세트 수정 |
-| DELETE | `/api/sets/{id}/` | 세트 삭제 |
-| POST | `/api/exercises/search/` | 운동 이름 퍼지 매칭 검색 |
-| GET | `/api/exercises/{id}/progress/` | 성장 추이 (`?period=1m\|3m\|6m\|all`) |
+| 메서드 | 경로                            | 설명                                  |
+| ------ | ------------------------------- | ------------------------------------- |
+| POST   | `/api/auth/register/`           | 회원가입                              |
+| POST   | `/api/auth/token/`              | 로그인                                |
+| POST   | `/api/auth/token/refresh/`      | 토큰 갱신                             |
+| GET    | `/api/sessions/`                | 세션 목록 (날짜 필터 가능)            |
+| POST   | `/api/sessions/`                | 세션 생성 (날짜 기준 get_or_create)   |
+| POST   | `/api/sessions/{id}/sets/`      | 세트 추가                             |
+| PATCH  | `/api/sets/{id}/`               | 세트 수정                             |
+| DELETE | `/api/sets/{id}/`               | 세트 삭제                             |
+| POST   | `/api/exercises/search/`        | 운동 이름 퍼지 매칭 검색              |
+| GET    | `/api/exercises/{id}/progress/` | 성장 추이 (`?period=1m\|3m\|6m\|all`) |

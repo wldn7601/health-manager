@@ -1,3 +1,5 @@
+import os
+import subprocess
 from pathlib import Path
 
 from django.contrib.auth.models import User
@@ -34,6 +36,36 @@ class RegisterView(APIView):
             {'access': str(refresh.access_token), 'refresh': str(refresh)},
             status=status.HTTP_201_CREATED,
         )
+
+
+class DeployView(APIView):
+    """
+    POST /api/deploy/
+    GitHub Actions에서 호출 — git pull + collectstatic + WSGI reload.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token = request.headers.get('X-Deploy-Token', '')
+        if not token or token != os.getenv('DEPLOY_SECRET', ''):
+            return Response({'error': 'unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        repo_root = Path(settings.BASE_DIR).parent
+        venv_python = repo_root / 'backend' / 'venv' / 'bin' / 'python'
+        wsgi_file = Path('/var/www/wldn7601_pythonanywhere_com_wsgi.py')
+
+        try:
+            subprocess.run(['git', 'pull'], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(
+                [str(venv_python), 'manage.py', 'collectstatic', '--noinput'],
+                cwd=repo_root / 'backend',
+                check=True,
+                capture_output=True,
+            )
+            wsgi_file.touch()
+            return Response({'status': 'ok'})
+        except subprocess.CalledProcessError as e:
+            return Response({'error': e.stderr.decode()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class StaticFileView(APIView):
