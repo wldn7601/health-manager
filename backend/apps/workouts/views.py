@@ -269,6 +269,55 @@ class ExpandToDropsetView(APIView):
         return Response({'group_id': group_id, 'sets': serializer.data}, status=status.HTTP_201_CREATED)
 
 
+class ExpandToPairedView(APIView):
+    """
+    POST /api/sets/{pk}/expand_paired/
+    기존 세트를 슈퍼세트/컴파운드세트 그룹으로 확장.
+    body: { "group_type": "superset", "weight1": 80, "reps1": 8,
+            "exercise2": 5, "weight2": 50, "reps2": 10 }
+    """
+
+    def post(self, request, pk):
+        from django.db.models import Max
+        ws = get_object_or_404(WorkoutSet, pk=pk, session__user=request.user)
+        group_type = request.data.get('group_type')
+        if group_type not in ('superset', 'compound'):
+            return Response({'error': '잘못된 group_type'}, status=status.HTTP_400_BAD_REQUEST)
+
+        weight1 = request.data.get('weight1')
+        reps1 = request.data.get('reps1')
+        exercise2_id = request.data.get('exercise2')
+        weight2 = request.data.get('weight2')
+        reps2 = request.data.get('reps2')
+
+        if None in (weight1, reps1, exercise2_id, weight2, reps2):
+            return Response({'error': '필수 필드 누락'}, status=status.HTTP_400_BAD_REQUEST)
+
+        max_group = WorkoutSet.objects.filter(session=ws.session).aggregate(m=Max('group_id'))['m'] or 0
+        group_id = max_group + 1
+
+        ws.weight = weight1
+        ws.reps = reps1
+        ws.set_type = group_type
+        ws.group_id = group_id
+        ws.save()
+
+        exercise2 = get_object_or_404(Exercise, pk=exercise2_id)
+        ex2_count = WorkoutSet.objects.filter(session=ws.session, exercise=exercise2).count()
+        ws2 = WorkoutSet.objects.create(
+            session=ws.session,
+            exercise=exercise2,
+            set_number=ex2_count + 1,
+            weight=weight2,
+            reps=reps2,
+            set_type=group_type,
+            group_id=group_id,
+        )
+
+        serializer = WorkoutSetSerializer([ws, ws2], many=True)
+        return Response({'group_id': group_id, 'sets': serializer.data}, status=status.HTTP_201_CREATED)
+
+
 class WorkoutTipCreateView(generics.CreateAPIView):
     """
     POST /api/sessions/{session_id}/tips/

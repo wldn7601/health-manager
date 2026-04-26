@@ -8,6 +8,7 @@ import {
   createTip,
   deleteSet,
   expandToDropset,
+  expandToPaired,
   fetchCategories,
   fetchSessions,
   searchExercise,
@@ -110,6 +111,11 @@ export default function Record() {
     setSavedSets((prev) => [...prev.filter((s) => s.id !== id), ...result.sets])
   }
 
+  const handleExpandToPaired = async (id, data) => {
+    const result = await expandToPaired(id, data)
+    setSavedSets((prev) => [...prev.filter((s) => s.id !== id), ...result.sets])
+  }
+
   const handleDeleteSet = async (id) => {
     await deleteSet(id)
     setSavedSets((prev) => prev.filter((s) => s.id !== id))
@@ -149,6 +155,7 @@ export default function Record() {
           onUpdateSet={handleUpdateSet}
           onDeleteSet={handleDeleteSet}
           onExpandSet={handleExpandToDropset}
+          onExpandPairedSet={handleExpandToPaired}
           onAddTip={async (content) => {
             const s = await ensureSession()
             await createTip(s.id, { exercise: exercise.id, content })
@@ -164,6 +171,8 @@ export default function Record() {
           onUpdateSet={handleUpdateSet}
           onDeleteSet={handleDeleteSet}
           onExpandSet={handleExpandToDropset}
+          onExpandPairedSet={handleExpandToPaired}
+          categories={categories}
           onError={setError}
         />
       )}
@@ -237,7 +246,7 @@ function ExercisePicker({ category, onPick, onError }) {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="예: 인클라인 프레스"
+        placeholder={`예: ${{ '하체': '스쿼트', '팔': '바벨 컬', '등': '풀업', '가슴': '벤치 프레스', '어깨': '덤벨 숄더 프레스' }[category.name] ?? '운동명'}`}
         className="w-full px-3 py-2 border rounded outline-none focus:border-blue-400"
       />
       {loading && <p className="mt-3 text-sm text-slate-400">검색 중…</p>}
@@ -344,7 +353,7 @@ function MiniExercisePicker({ categories, excludeId, onPick, onError }) {
   )
 }
 
-function SetRow({ set, onUpdate, onDelete, onExpand, onError }) {
+function SetRow({ set, onUpdate, onDelete, onExpand, onExpandPaired, categories, onError }) {
   const [editing, setEditing] = useState(false)
   const [weight, setWeight] = useState(String(Number(set.weight)))
   const [reps, setReps] = useState(String(set.reps))
@@ -353,6 +362,11 @@ function SetRow({ set, onUpdate, onDelete, onExpand, onError }) {
     { weight: String(Number(set.weight)), reps: String(set.reps) },
     { weight: '', reps: '' },
   ])
+  const [ex2, setEx2] = useState(null)
+  const [weight1, setWeight1] = useState(String(Number(set.weight)))
+  const [reps1, setReps1] = useState(String(set.reps))
+  const [weight2, setWeight2] = useState('')
+  const [reps2, setReps2] = useState('')
   const [saving, setSaving] = useState(false)
 
   const handleTypeChange = (type) => {
@@ -362,6 +376,11 @@ function SetRow({ set, onUpdate, onDelete, onExpand, onError }) {
         { weight: String(Number(set.weight)), reps: String(set.reps) },
         { weight: '', reps: '' },
       ])
+    } else if (type === 'superset' || type === 'compound') {
+      setEx2(null)
+      setWeight1(String(Number(set.weight)))
+      setReps1(String(set.reps))
+      setWeight2(''); setReps2('')
     }
   }
 
@@ -413,6 +432,78 @@ function SetRow({ set, onUpdate, onDelete, onExpand, onError }) {
                 finally { setSaving(false) }
               }}
               className="px-4 py-1.5 text-sm bg-orange-500 text-white rounded disabled:bg-slate-300">드랍세트로 저장</button>
+            <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs border rounded text-slate-600">취소</button>
+          </div>
+        </li>
+      )
+    }
+
+    if ((setType === 'superset' || setType === 'compound') && onExpandPaired && categories) {
+      const typeLabel = SET_TYPES.find((t) => t.value === setType)?.label
+      return (
+        <li className="py-2">
+          <div className="flex gap-1 flex-wrap mb-3">
+            {SET_TYPES.map((t) => (
+              <button key={t.value} type="button" onClick={() => handleTypeChange(t.value)}
+                className={`px-2 py-0.5 rounded-full text-xs border transition ${
+                  setType === t.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300'
+                }`}>{t.label}</button>
+            ))}
+          </div>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-1.5">① {set.exercise_name}</p>
+              <div className="flex gap-2 flex-wrap">
+                <input type="number" step="0.5" value={weight1} onChange={(e) => setWeight1(e.target.value)}
+                  placeholder="중량" className="w-20 px-2 py-1.5 border rounded text-sm" />
+                <span className="text-xs text-slate-400 self-center">kg</span>
+                <input type="number" value={reps1} onChange={(e) => setReps1(e.target.value)}
+                  placeholder="횟수" className="w-16 px-2 py-1.5 border rounded text-sm" />
+                <span className="text-xs text-slate-400 self-center">회</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-1.5">② 두 번째 운동</p>
+              {!ex2 ? (
+                <MiniExercisePicker categories={categories} excludeId={set.exercise} onPick={setEx2} onError={onError} />
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-sm font-medium text-slate-700">{ex2.canonical_name}</span>
+                    <button type="button" onClick={() => setEx2(null)} className="text-xs text-slate-400 underline">변경</button>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <input type="number" step="0.5" value={weight2} onChange={(e) => setWeight2(e.target.value)}
+                      placeholder="중량" className="w-20 px-2 py-1.5 border rounded text-sm" />
+                    <span className="text-xs text-slate-400 self-center">kg</span>
+                    <input type="number" value={reps2} onChange={(e) => setReps2(e.target.value)}
+                      placeholder="횟수" className="w-16 px-2 py-1.5 border rounded text-sm" />
+                    <span className="text-xs text-slate-400 self-center">회</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3 flex-wrap">
+            {ex2 && (
+              <button disabled={saving}
+                onClick={async () => {
+                  const w1 = parseFloat(weight1), r1 = parseInt(reps1, 10)
+                  const w2 = parseFloat(weight2), r2 = parseInt(reps2, 10)
+                  if ([w1, r1, w2, r2].some(Number.isNaN) || r1 <= 0 || r2 <= 0) {
+                    onError('중량과 횟수를 올바르게 입력해주세요.'); return
+                  }
+                  setSaving(true)
+                  try {
+                    await onExpandPaired(set.id, { group_type: setType, weight1: w1, reps1: r1, exercise2: ex2.id, weight2: w2, reps2: r2 })
+                    setEditing(false)
+                  }
+                  catch (e) { onError(String(e)) }
+                  finally { setSaving(false) }
+                }}
+                className="px-4 py-1.5 text-sm bg-purple-600 text-white rounded disabled:bg-slate-300"
+              >{typeLabel}로 저장</button>
+            )}
             <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs border rounded text-slate-600">취소</button>
           </div>
         </li>
@@ -532,7 +623,7 @@ function DropsetGroupRow({ sets, onUpdate, onDelete, onError }) {
   )
 }
 
-function ExerciseSetList({ sets, onUpdate, onDelete, onExpand, onError, containerClass }) {
+function ExerciseSetList({ sets, onUpdate, onDelete, onExpand, onExpandPaired, categories, onError, containerClass }) {
   const ungrouped = sets.filter((s) => s.group_id == null)
   const groupedMap = {}
   sets.filter((s) => s.group_id != null).forEach((s) => {
@@ -551,7 +642,7 @@ function ExerciseSetList({ sets, onUpdate, onDelete, onExpand, onError, containe
       {ungrouped
         .sort((a, b) => a.set_number - b.set_number)
         .map((s) => (
-          <SetRow key={s.id} set={s} onUpdate={onUpdate} onDelete={onDelete} onExpand={onExpand} onError={onError} />
+          <SetRow key={s.id} set={s} onUpdate={onUpdate} onDelete={onDelete} onExpand={onExpand} onExpandPaired={onExpandPaired} categories={categories} onError={onError} />
         ))}
       {sortedGroupKeys.map((gid) => {
         const groupSets = [...groupedMap[gid]].sort((a, b) => a.set_number - b.set_number)
@@ -563,7 +654,7 @@ function ExerciseSetList({ sets, onUpdate, onDelete, onExpand, onError, containe
   )
 }
 
-function ExerciseSetPanel({ exercise, sets, categories, onAddSet, onAddGrouped, onUpdateSet, onDeleteSet, onExpandSet, onAddTip, onDone, onError }) {
+function ExerciseSetPanel({ exercise, sets, categories, onAddSet, onAddGrouped, onUpdateSet, onDeleteSet, onExpandSet, onExpandPairedSet, onAddTip, onDone, onError }) {
   const [setType, setSetType] = useState('normal')
   const [weight, setWeight] = useState('')
   const [reps, setReps] = useState('')
@@ -656,7 +747,7 @@ function ExerciseSetPanel({ exercise, sets, categories, onAddSet, onAddGrouped, 
       {sets.length > 0 && (
         <ul className="mb-3 divide-y">
           {sets.map((s) => (
-            <SetRow key={s.id} set={s} onUpdate={onUpdateSet} onDelete={onDeleteSet} onExpand={onExpandSet} onError={onError} />
+            <SetRow key={s.id} set={s} onUpdate={onUpdateSet} onDelete={onDeleteSet} onExpand={onExpandSet} onExpandPaired={onExpandPairedSet} categories={categories} onError={onError} />
           ))}
         </ul>
       )}
@@ -832,7 +923,7 @@ function ExerciseSetPanel({ exercise, sets, categories, onAddSet, onAddGrouped, 
   )
 }
 
-function SessionSummary({ sets, onUpdateSet, onDeleteSet, onExpandSet, onError }) {
+function SessionSummary({ sets, onUpdateSet, onDeleteSet, onExpandSet, onExpandPairedSet, categories, onError }) {
   const byExercise = sets.reduce((acc, s) => {
     const key = s.exercise_name
     acc[key] = acc[key] || []
@@ -854,6 +945,8 @@ function SessionSummary({ sets, onUpdateSet, onDeleteSet, onExpandSet, onError }
               onUpdate={onUpdateSet}
               onDelete={onDeleteSet}
               onExpand={onExpandSet}
+              onExpandPaired={onExpandPairedSet}
+              categories={categories}
               onError={onError}
             />
           </li>

@@ -59,6 +59,9 @@ export const fetchExerciseProgress = (id, period = '3m') =>
 export const expandToDropset = (id, { drops }) =>
   client.post(`/sets/${id}/expand_dropset/`, { drops }).then((r) => r.data)
 
+export const expandToPaired = (id, { group_type, weight1, reps1, exercise2, weight2, reps2 }) =>
+  client.post(`/sets/${id}/expand_paired/`, { group_type, weight1, reps1, exercise2, weight2, reps2 }).then((r) => r.data)
+
 export const updateSet = (id, { weight, reps, set_type }) =>
   client.patch(`/sets/${id}/`, { weight, reps, set_type }).then((r) => r.data)
 
