@@ -351,6 +351,42 @@ class WorkoutSetDetailView(generics.UpdateAPIView, generics.DestroyAPIView):
         return WorkoutSet.objects.filter(session__user=self.request.user)
 
 
+class AddDropToGroupView(APIView):
+    """
+    POST /api/sets/{pk}/add_to_group/
+    기존 그룹에 드랍을 추가. pk는 같은 그룹에 속한 임의의 세트 id.
+    body: { "weight": 80, "reps": 12 }
+    """
+
+    def post(self, request, pk):
+        ws = get_object_or_404(WorkoutSet, pk=pk, session__user=request.user)
+        if ws.group_id is None:
+            return Response(
+                {'error': '그룹에 속하지 않은 세트입니다'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        weight = request.data.get('weight')
+        reps = request.data.get('reps')
+        if weight is None or reps is None:
+            return Response({'error': '필수 필드 누락'}, status=status.HTTP_400_BAD_REQUEST)
+
+        max_set_num = (
+            WorkoutSet.objects
+            .filter(session=ws.session, exercise=ws.exercise)
+            .aggregate(m=Max('set_number'))['m'] or 0
+        )
+        new_ws = WorkoutSet.objects.create(
+            session=ws.session,
+            exercise=ws.exercise,
+            set_number=max_set_num + 1,
+            weight=weight,
+            reps=reps,
+            set_type=ws.set_type,
+            group_id=ws.group_id,
+        )
+        return Response(WorkoutSetSerializer(new_ws).data, status=status.HTTP_201_CREATED)
+
+
 class ExerciseProgressView(APIView):
     """
     GET /api/exercises/{id}/progress/?period=1m|3m|6m|all

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { createExercise, deleteSet, expandToDropset, expandToPaired, fetchCategories, fetchSessions, searchExercise, updateSet } from '../api/workouts'
+import { addDropToGroup, createExercise, deleteSet, expandToDropset, expandToPaired, fetchCategories, fetchSessions, searchExercise, updateSet } from '../api/workouts'
 import useDebounce from '../hooks/useDebounce'
 
 const daysAgoISO = (n) => {
@@ -76,6 +76,16 @@ export default function History() {
     )
   }
 
+  const handleAddToGroup = async (id, { weight, reps }) => {
+    const newSet = await addDropToGroup(id, { weight, reps })
+    setSessions((prev) =>
+      prev.map((sess) => ({
+        ...sess,
+        sets: sess.sets.some((s) => s.id === id) ? [...sess.sets, newSet] : sess.sets,
+      })),
+    )
+  }
+
   const sorted = [...sessions].sort((a, b) => b.date.localeCompare(a.date))
 
   return (
@@ -119,6 +129,7 @@ export default function History() {
               onDeleteSet={handleDeleteSet}
               onExpandSet={handleExpandToDropset}
               onExpandPairedSet={handleExpandToPaired}
+              onAddToGroup={handleAddToGroup}
               categories={categories}
               onError={setError}
             />
@@ -426,7 +437,7 @@ function DropRow({ set, index, onUpdate, onDelete, onError }) {
   if (editing) {
     return (
       <div className="flex items-center gap-1.5 text-sm flex-wrap">
-        {index > 0 && <span className="text-slate-400 text-xs">↓</span>}
+        <span className="text-xs text-slate-400 w-10 shrink-0">{index + 1}번째</span>
         <input type="number" step="0.5" value={weight} onChange={(e) => setWeight(e.target.value)}
           className="w-20 px-2 py-1 border rounded text-sm" />
         <span className="text-slate-400 text-xs">kg</span>
@@ -451,7 +462,9 @@ function DropRow({ set, index, onUpdate, onDelete, onError }) {
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-slate-600">
-        {index > 0 && <span className="text-slate-400 mr-1 text-xs">↓</span>}
+        {set.set_type !== 'dropset' && (
+          <span className="text-xs text-slate-500 font-medium mr-1">{set.exercise_name}</span>
+        )}
         {Number(set.weight)}kg × {set.reps}회
       </span>
       <div className="flex gap-1">
@@ -463,8 +476,15 @@ function DropRow({ set, index, onUpdate, onDelete, onError }) {
   )
 }
 
-function DropsetGroupRow({ sets, onUpdate, onDelete, onError }) {
+function DropsetGroupRow({ sets, onUpdate, onDelete, onAddToGroup, onError }) {
+  const [addingDrop, setAddingDrop] = useState(false)
+  const [newWeight, setNewWeight] = useState('')
+  const [newReps, setNewReps] = useState('')
+  const [saving, setSaving] = useState(false)
+
   const meta = SET_TYPE_LABELS[sets[0].set_type]
+  const isDropset = sets[0].set_type === 'dropset'
+
   return (
     <li className="py-2 px-1">
       <div className="flex items-center gap-1.5 mb-0.5">
@@ -476,36 +496,67 @@ function DropsetGroupRow({ sets, onUpdate, onDelete, onError }) {
           <DropRow key={s.id} set={s} index={i} onUpdate={onUpdate} onDelete={onDelete} onError={onError} />
         ))}
       </div>
+      {isDropset && onAddToGroup && (
+        addingDrop ? (
+          <div className="mt-1.5 flex gap-1.5 items-center flex-wrap">
+            <input type="number" step="0.5" value={newWeight} onChange={(e) => setNewWeight(e.target.value)}
+              placeholder="중량" className="w-20 px-2 py-1 border rounded text-sm" />
+            <span className="text-xs text-slate-400">kg</span>
+            <input type="number" value={newReps} onChange={(e) => setNewReps(e.target.value)}
+              placeholder="횟수" className="w-14 px-2 py-1 border rounded text-sm" />
+            <span className="text-xs text-slate-400">회</span>
+            <button disabled={saving}
+              onClick={async () => {
+                const w = parseFloat(newWeight), r = parseInt(newReps, 10)
+                if (Number.isNaN(w) || Number.isNaN(r) || r <= 0) { onError('올바른 값을 입력해주세요.'); return }
+                setSaving(true)
+                try { await onAddToGroup(sets[0].id, { weight: w, reps: r }); setNewWeight(''); setNewReps(''); setAddingDrop(false) }
+                catch (e) { onError(String(e)) }
+                finally { setSaving(false) }
+              }}
+              className="text-xs bg-orange-500 text-white px-2 py-1 rounded disabled:bg-slate-300">추가</button>
+            <button onClick={() => { setAddingDrop(false); setNewWeight(''); setNewReps('') }}
+              className="text-xs border px-2 py-1 rounded text-slate-600">취소</button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setAddingDrop(true)}
+            className="mt-1 text-xs text-orange-600 border border-orange-300 px-2 py-0.5 rounded">
+            + 드랍 추가
+          </button>
+        )
+      )}
     </li>
   )
 }
 
-function ExerciseSetList({ sets, onUpdate, onDelete, onExpand, onExpandPaired, categories, onError }) {
+function ExerciseSetList({ sets, onUpdate, onDelete, onExpand, onExpandPaired, onAddToGroup, categories, onError }) {
   const ungrouped = sets.filter((s) => s.group_id == null)
   const groupedMap = {}
   sets.filter((s) => s.group_id != null).forEach((s) => {
     groupedMap[s.group_id] = groupedMap[s.group_id] || []
     groupedMap[s.group_id].push(s)
   })
-  const sortedGroupKeys = Object.keys(groupedMap).sort((a, b) => {
-    const minA = Math.min(...groupedMap[a].map((s) => s.set_number))
-    const minB = Math.min(...groupedMap[b].map((s) => s.set_number))
-    return minA - minB
+  const items = []
+  ungrouped.forEach((s) => items.push({ type: 'single', key: s.id, minSetNum: s.set_number, data: s }))
+  Object.keys(groupedMap).forEach((gid) => {
+    const groupSets = [...groupedMap[gid]].sort((a, b) => a.set_number - b.set_number)
+    items.push({ type: 'group', key: gid, minSetNum: groupSets[0].set_number, data: groupSets })
   })
+  items.sort((a, b) => a.minSetNum - b.minSetNum)
   return (
     <ul className="divide-y border rounded bg-slate-50">
-      {ungrouped.sort((a, b) => a.set_number - b.set_number).map((s) => (
-        <SetRow key={s.id} set={s} onUpdate={onUpdate} onDelete={onDelete} onExpand={onExpand} onExpandPaired={onExpandPaired} categories={categories} onError={onError} />
-      ))}
-      {sortedGroupKeys.map((gid) => {
-        const groupSets = [...groupedMap[gid]].sort((a, b) => a.set_number - b.set_number)
-        return <DropsetGroupRow key={gid} sets={groupSets} onUpdate={onUpdate} onDelete={onDelete} onError={onError} />
-      })}
+      {items.map((item) =>
+        item.type === 'single' ? (
+          <SetRow key={item.key} set={item.data} onUpdate={onUpdate} onDelete={onDelete} onExpand={onExpand} onExpandPaired={onExpandPaired} categories={categories} onError={onError} />
+        ) : (
+          <DropsetGroupRow key={item.key} sets={item.data} onUpdate={onUpdate} onDelete={onDelete} onAddToGroup={onAddToGroup} onError={onError} />
+        )
+      )}
     </ul>
   )
 }
 
-function SessionCard({ session, onUpdateSet, onDeleteSet, onExpandSet, onExpandPairedSet, categories, onError }) {
+function SessionCard({ session, onUpdateSet, onDeleteSet, onExpandSet, onExpandPairedSet, onAddToGroup, categories, onError }) {
   const byExercise = session.sets.reduce((acc, st) => {
     const key = st.exercise
     acc[key] = acc[key] || { id: st.exercise, name: st.exercise_name, sets: [] }
@@ -532,6 +583,7 @@ function SessionCard({ session, onUpdateSet, onDeleteSet, onExpandSet, onExpandP
             onDelete={onDeleteSet}
             onExpand={onExpandSet}
             onExpandPaired={onExpandPairedSet}
+            onAddToGroup={onAddToGroup}
             categories={categories}
             onError={onError}
           />

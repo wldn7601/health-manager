@@ -67,3 +67,6 @@ export const updateSet = (id, { weight, reps, set_type }) =>
 
 export const deleteSet = (id) =>
   client.delete(`/sets/${id}/`)
+
+export const addDropToGroup = (id, { weight, reps }) =>
+  client.post(`/sets/${id}/add_to_group/`, { weight, reps }).then((r) => r.data)

@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    AddDropToGroupView,
     CategoryListView,
     ExerciseDetailView,
     ExerciseHistoryView,
@@ -39,6 +40,7 @@ urlpatterns = [
     path('sets/<int:pk>/', WorkoutSetDetailView.as_view(), name='set-detail'),
     path('sets/<int:pk>/expand_dropset/', ExpandToDropsetView.as_view(), name='set-expand-dropset'),
     path('sets/<int:pk>/expand_paired/', ExpandToPairedView.as_view(), name='set-expand-paired'),
+    path('sets/<int:pk>/add_to_group/', AddDropToGroupView.as_view(), name='set-add-to-group'),
     path(
         'sessions/<int:session_id>/tips/',
         WorkoutTipCreateView.as_view(),
