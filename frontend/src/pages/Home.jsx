@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { deleteSet, fetchSessions, updateSet } from '../api/workouts'
+import { deleteSet, expandToDropset, fetchSessions, updateSet } from '../api/workouts'
 
 const SET_TYPES = [
   { value: 'normal', label: '일반' },
@@ -95,7 +95,7 @@ function DropsetGroupRow({ sets, onUpdate, onDelete, onError }) {
   )
 }
 
-function ExerciseSetList({ sets, onUpdate, onDelete, onError }) {
+function ExerciseSetList({ sets, onUpdate, onDelete, onExpand, onError }) {
   const ungrouped = sets.filter((s) => s.group_id == null)
   const groupedMap = {}
   sets.filter((s) => s.group_id != null).forEach((s) => {
@@ -110,7 +110,7 @@ function ExerciseSetList({ sets, onUpdate, onDelete, onError }) {
   return (
     <ul className="divide-y divide-slate-100">
       {ungrouped.sort((a, b) => a.set_number - b.set_number).map((set) => (
-        <SetRow key={set.id} set={set} onUpdate={onUpdate} onDelete={onDelete} onError={onError} />
+        <SetRow key={set.id} set={set} onUpdate={onUpdate} onDelete={onDelete} onExpand={onExpand} onError={onError} />
       ))}
       {sortedGroupKeys.map((gid) => {
         const groupSets = [...groupedMap[gid]].sort((a, b) => a.set_number - b.set_number)
@@ -120,23 +120,89 @@ function ExerciseSetList({ sets, onUpdate, onDelete, onError }) {
   )
 }
 
-function SetRow({ set, onUpdate, onDelete, onError }) {
+function SetRow({ set, onUpdate, onDelete, onExpand, onError }) {
   const [editing, setEditing] = useState(false)
   const [weight, setWeight] = useState(String(Number(set.weight)))
   const [reps, setReps] = useState(String(set.reps))
   const [setType, setSetType] = useState(set.set_type || 'normal')
+  const [dropRows, setDropRows] = useState([
+    { weight: String(Number(set.weight)), reps: String(set.reps) },
+    { weight: '', reps: '' },
+  ])
   const [saving, setSaving] = useState(false)
 
+  const handleTypeChange = (type) => {
+    setSetType(type)
+    if (type === 'dropset') {
+      setDropRows([
+        { weight: String(Number(set.weight)), reps: String(set.reps) },
+        { weight: '', reps: '' },
+      ])
+    }
+  }
+
   if (editing) {
+    if (setType === 'dropset' && onExpand) {
+      return (
+        <li className="py-2">
+          <div className="flex gap-1 flex-wrap mb-2">
+            {SET_TYPES.map((t) => (
+              <button key={t.value} type="button" onClick={() => handleTypeChange(t.value)}
+                className={`px-2 py-0.5 rounded-full text-xs border transition ${
+                  setType === t.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300'
+                }`}>{t.label}</button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 mb-2">드랍 순서대로 입력 (무거운 것 → 가벼운 것)</p>
+          <div className="space-y-1.5 mb-2">
+            {dropRows.map((row, i) => (
+              <div key={i} className="flex gap-1.5 items-center">
+                <span className="text-xs text-slate-400 w-12 shrink-0">{i + 1}번째</span>
+                <input type="number" step="0.5" value={row.weight}
+                  onChange={(e) => setDropRows(dropRows.map((r, j) => j === i ? { ...r, weight: e.target.value } : r))}
+                  className="flex-1 px-2 py-1 border rounded text-sm min-w-0" />
+                <span className="text-xs text-slate-400 shrink-0">kg</span>
+                <input type="number" value={row.reps}
+                  onChange={(e) => setDropRows(dropRows.map((r, j) => j === i ? { ...r, reps: e.target.value } : r))}
+                  className="w-14 px-2 py-1 border rounded text-sm" />
+                <span className="text-xs text-slate-400 shrink-0">회</span>
+                {dropRows.length > 2 && (
+                  <button type="button" onClick={() => setDropRows(dropRows.filter((_, j) => j !== i))}
+                    className="text-red-400 text-sm px-1 shrink-0">×</button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button type="button"
+              onClick={() => setDropRows([...dropRows, { weight: '', reps: '' }])}
+              className="px-3 py-1.5 text-xs border border-slate-300 rounded text-slate-600">+ 드랍 추가</button>
+            <button disabled={saving}
+              onClick={async () => {
+                const parsed = dropRows.map((r) => ({ weight: parseFloat(r.weight), reps: parseInt(r.reps, 10) }))
+                if (parsed.some((r) => Number.isNaN(r.weight) || Number.isNaN(r.reps) || r.reps <= 0)) {
+                  onError('모든 드랍의 중량과 횟수를 입력해주세요.'); return
+                }
+                setSaving(true)
+                try { await onExpand(set.id, parsed); setEditing(false) }
+                catch (e) { onError(String(e)) }
+                finally { setSaving(false) }
+              }}
+              className="px-4 py-1.5 text-sm bg-orange-500 text-white rounded disabled:bg-slate-300">드랍세트로 저장</button>
+            <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs border rounded text-slate-600">취소</button>
+          </div>
+        </li>
+      )
+    }
+
     return (
       <li className="py-2">
         <div className="flex gap-1 flex-wrap mb-2">
           {SET_TYPES.map((t) => (
-            <button key={t.value} type="button" onClick={() => setSetType(t.value)}
+            <button key={t.value} type="button" onClick={() => handleTypeChange(t.value)}
               className={`px-2 py-0.5 rounded-full text-xs border transition ${
                 setType === t.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300'
-              }`}
-            >{t.label}</button>
+              }`}>{t.label}</button>
           ))}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -149,16 +215,14 @@ function SetRow({ set, onUpdate, onDelete, onError }) {
           <span className="text-xs text-slate-400">회</span>
           <button disabled={saving}
             onClick={async () => {
-              const w = parseFloat(weight)
-              const r = parseInt(reps, 10)
+              const w = parseFloat(weight), r = parseInt(reps, 10)
               if (Number.isNaN(w) || Number.isNaN(r) || r <= 0) { onError('올바른 값을 입력해주세요.'); return }
               setSaving(true)
               try { await onUpdate(set.id, { weight: w, reps: r, set_type: setType }); setEditing(false) }
               catch (e) { onError(String(e)) }
               finally { setSaving(false) }
             }}
-            className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded disabled:bg-slate-300"
-          >저장</button>
+            className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded disabled:bg-slate-300">저장</button>
           <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-xs border rounded text-slate-600">취소</button>
         </div>
       </li>
@@ -213,6 +277,14 @@ export default function Home() {
     setSession((prev) => ({
       ...prev,
       sets: prev.sets.filter((s) => s.id !== id),
+    }))
+  }
+
+  const handleExpandToDropset = async (id, drops) => {
+    const result = await expandToDropset(id, { drops })
+    setSession((prev) => ({
+      ...prev,
+      sets: [...prev.sets.filter((s) => s.id !== id), ...result.sets],
     }))
   }
 
@@ -276,6 +348,7 @@ export default function Home() {
                   sets={sets}
                   onUpdate={handleUpdateSet}
                   onDelete={handleDeleteSet}
+                  onExpand={handleExpandToDropset}
                   onError={setError}
                 />
               </div>

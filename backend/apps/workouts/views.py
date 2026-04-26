@@ -224,6 +224,51 @@ class GroupedSetCreateView(APIView):
         return Response({'group_id': group_id, 'sets': serializer.data}, status=status.HTTP_201_CREATED)
 
 
+class ExpandToDropsetView(APIView):
+    """
+    POST /api/sets/{pk}/expand_dropset/
+    기존 세트를 드랍세트 그룹으로 확장.
+    body: { "drops": [{ "weight": 100, "reps": 10 }, { "weight": 80, "reps": 12 }] }
+    기존 세트가 첫 번째 드랍이 되고, 나머지는 새로 생성됨.
+    """
+
+    def post(self, request, pk):
+        from django.db.models import Max
+        ws = get_object_or_404(WorkoutSet, pk=pk, session__user=request.user)
+        drops = request.data.get('drops', [])
+        if len(drops) < 2:
+            return Response({'error': '드랍은 2개 이상이어야 합니다'}, status=status.HTTP_400_BAD_REQUEST)
+
+        max_group = WorkoutSet.objects.filter(session=ws.session).aggregate(m=Max('group_id'))['m'] or 0
+        group_id = max_group + 1
+
+        first = drops[0]
+        ws.weight = first['weight']
+        ws.reps = first['reps']
+        ws.set_type = 'dropset'
+        ws.group_id = group_id
+        ws.save()
+
+        result = [ws]
+        max_set_num = WorkoutSet.objects.filter(
+            session=ws.session, exercise=ws.exercise
+        ).aggregate(m=Max('set_number'))['m'] or 0
+        for i, drop in enumerate(drops[1:], 1):
+            new_ws = WorkoutSet.objects.create(
+                session=ws.session,
+                exercise=ws.exercise,
+                set_number=max_set_num + i,
+                weight=drop['weight'],
+                reps=drop['reps'],
+                set_type='dropset',
+                group_id=group_id,
+            )
+            result.append(new_ws)
+
+        serializer = WorkoutSetSerializer(result, many=True)
+        return Response({'group_id': group_id, 'sets': serializer.data}, status=status.HTTP_201_CREATED)
+
+
 class WorkoutTipCreateView(generics.CreateAPIView):
     """
     POST /api/sessions/{session_id}/tips/

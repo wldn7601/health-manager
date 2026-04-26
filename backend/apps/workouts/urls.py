@@ -8,6 +8,7 @@ from .views import (
     ExerciseProgressView,
     ExerciseSearchView,
     ExerciseTipsView,
+    ExpandToDropsetView,
     GroupedSetCreateView,
     WorkoutSessionListCreateView,
     WorkoutSetCreateView,
@@ -35,6 +36,7 @@ urlpatterns = [
         name='session-grouped-set-create',
     ),
     path('sets/<int:pk>/', WorkoutSetDetailView.as_view(), name='set-detail'),
+    path('sets/<int:pk>/expand_dropset/', ExpandToDropsetView.as_view(), name='set-expand-dropset'),
     path(
         'sessions/<int:session_id>/tips/',
         WorkoutTipCreateView.as_view(),
