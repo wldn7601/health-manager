@@ -36,12 +36,21 @@ export default function Login() {
           </div>
 
           <div className="p-6">
-            {tab === 'login' ? <LoginForm /> : <RegisterForm onSuccess={() => setTab('login')} />}
+            {tab === 'login' ? <LoginForm /> : <RegisterForm />}
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+const redirectAfterLogin = (token, navigate) => {
+  try {
+    const { is_staff } = JSON.parse(atob(token.split('.')[1]))
+    navigate(is_staff ? '/admin-panel' : '/record', { replace: true })
+  } catch {
+    navigate('/record', { replace: true })
+  }
 }
 
 function LoginForm() {
@@ -59,7 +68,7 @@ function LoginForm() {
       const { data } = await axios.post('/api/auth/token/', { username, password })
       localStorage.setItem('access', data.access)
       localStorage.setItem('refresh', data.refresh)
-      navigate('/record', { replace: true })
+      redirectAfterLogin(data.access, navigate)
     } catch {
       setError('아이디 또는 비밀번호가 올바르지 않습니다.')
     } finally {
@@ -103,12 +112,13 @@ function LoginForm() {
   )
 }
 
-function RegisterForm({ onSuccess }) {
+function RegisterForm() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -119,8 +129,10 @@ function RegisterForm({ onSuccess }) {
     }
     setLoading(true)
     try {
-      await axios.post('/api/auth/register/', { username, password })
-      onSuccess()
+      const { data } = await axios.post('/api/auth/register/', { username, password })
+      localStorage.setItem('access', data.access)
+      localStorage.setItem('refresh', data.refresh)
+      navigate('/record', { replace: true })
     } catch (err) {
       setError(err.response?.data?.error ?? '회원가입에 실패했습니다.')
     } finally {

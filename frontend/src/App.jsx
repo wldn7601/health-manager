@@ -118,11 +118,12 @@ function BottomNav() {
 
 function AppShell() {
   const navigate = useNavigate()
+  const admin = isAdmin()
 
   const handleLogout = () => {
     localStorage.removeItem('access')
     localStorage.removeItem('refresh')
-    navigate('/', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -134,8 +135,7 @@ function AppShell() {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <span className="text-base font-bold">헬스 매니저</span>
           <div className="flex items-center gap-2">
-            <TopNav />
-            {isAdmin() && (
+            {admin ? (
               <NavLink
                 to="/admin-panel"
                 className={({ isActive }) =>
@@ -148,6 +148,8 @@ function AppShell() {
               >
                 관리
               </NavLink>
+            ) : (
+              <TopNav />
             )}
             <button
               onClick={handleLogout}
@@ -171,7 +173,7 @@ function AppShell() {
         </Routes>
       </main>
 
-      <BottomNav />
+      {!admin && <BottomNav />}
     </div>
   )
 }
@@ -191,11 +193,11 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={isLoggedIn() ? <Navigate to="/record" replace /> : <Login />}
+          element={isLoggedIn() ? <Navigate to={isAdmin() ? '/admin-panel' : '/record'} replace /> : <Login />}
         />
         <Route
           path="/login"
-          element={isLoggedIn() ? <Navigate to="/record" replace /> : <Login />}
+          element={isLoggedIn() ? <Navigate to={isAdmin() ? '/admin-panel' : '/record'} replace /> : <Login />}
         />
         <Route
           path="/*"
