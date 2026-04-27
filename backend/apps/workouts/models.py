@@ -97,6 +97,7 @@ class WorkoutTip(models.Model):
     session = models.ForeignKey(
         WorkoutSession,
         on_delete=models.CASCADE,
+        null=True, blank=True,
         related_name='tips',
     )
     content = models.TextField()
@@ -111,6 +112,7 @@ class EmailVerificationCode(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='email_verification_codes',
+        null=True,
     )
     email = models.EmailField(db_index=True)
     code = models.CharField(max_length=6)
