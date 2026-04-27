@@ -1,5 +1,6 @@
 from django.urls import path
 
+from .admin_views import AdminExerciseListView, AdminStatsView, AdminUserListView
 from .views import (
     AddDropToGroupView,
     CategoryListView,
@@ -46,4 +47,7 @@ urlpatterns = [
         WorkoutTipCreateView.as_view(),
         name='session-tip-create',
     ),
+    path('admin/stats/', AdminStatsView.as_view(), name='admin-stats'),
+    path('admin/users/', AdminUserListView.as_view(), name='admin-users'),
+    path('admin/exercises/', AdminExerciseListView.as_view(), name='admin-exercises'),
 ]

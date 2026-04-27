@@ -12,7 +12,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView as _BaseTokenView
 
 logger = logging.getLogger(__name__)
 
@@ -116,3 +118,15 @@ class StaticFileView(APIView):
             raise Http404
         content_type = self.CONTENT_TYPES.get(path.suffix, 'application/octet-stream')
         return FileResponse(open(path, 'rb'), content_type=content_type)
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['is_staff'] = user.is_staff
+        return token
+
+
+class CustomTokenObtainPairView(_BaseTokenView):
+    serializer_class = CustomTokenObtainPairSerializer

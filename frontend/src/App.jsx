@@ -5,8 +5,19 @@ import Record from './pages/Record'
 import History from './pages/History'
 import ExerciseDetail from './pages/ExerciseDetail'
 import Progress from './pages/Progress'
+import Admin from './pages/Admin'
 
 const isLoggedIn = () => !!localStorage.getItem('access')
+
+const isAdmin = () => {
+  const token = localStorage.getItem('access')
+  if (!token) return false
+  try {
+    return !!JSON.parse(atob(token.split('.')[1])).is_staff
+  } catch {
+    return false
+  }
+}
 
 function RequireAuth({ children }) {
   if (!isLoggedIn()) return <Navigate to="/" replace />
@@ -124,6 +135,20 @@ function AppShell() {
           <span className="text-base font-bold">헬스 매니저</span>
           <div className="flex items-center gap-2">
             <TopNav />
+            {isAdmin() && (
+              <NavLink
+                to="/admin-panel"
+                className={({ isActive }) =>
+                  `text-sm py-1.5 px-3 rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                  }`
+                }
+              >
+                관리
+              </NavLink>
+            )}
             <button
               onClick={handleLogout}
               className="text-sm text-slate-400 hover:text-slate-700 py-1.5 px-3 rounded-lg hover:bg-slate-100 transition-colors"
@@ -141,6 +166,7 @@ function AppShell() {
           <Route path="/history" element={<History />} />
           <Route path="/exercise/:id" element={<ExerciseDetail />} />
           <Route path="/progress" element={<Progress />} />
+          <Route path="/admin-panel" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
