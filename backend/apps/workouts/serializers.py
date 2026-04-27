@@ -53,11 +53,14 @@ class WorkoutSetSerializer(serializers.ModelSerializer):
     exercise_name = serializers.CharField(
         source='exercise.canonical_name', read_only=True,
     )
+    category_name = serializers.CharField(
+        source='exercise.category.name', read_only=True,
+    )
 
     class Meta:
         model = WorkoutSet
         fields = (
-            'id', 'session', 'exercise', 'exercise_name',
+            'id', 'session', 'exercise', 'exercise_name', 'category_name',
             'set_number', 'weight', 'reps', 'set_type', 'group_id',
         )
         read_only_fields = ('session',)

@@ -1,4 +1,5 @@
 import hmac
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -9,8 +10,19 @@ from django.http import FileResponse, Http404
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
+logger = logging.getLogger(__name__)
+
+
+class DeployRateThrottle(SimpleRateThrottle):
+    scope = 'deploy'
+
+    def get_cache_key(self, request, view):
+        ident = self.get_ident(request)
+        return self.cache_format % {'scope': self.scope, 'ident': ident}
 
 
 class RegisterView(APIView):
@@ -45,13 +57,17 @@ class DeployView(APIView):
     GitHub Actions에서 호출 — git pull + collectstatic + WSGI reload.
     """
     permission_classes = [AllowAny]
+    throttle_classes = [DeployRateThrottle]
 
     def post(self, request):
+        ip = request.META.get('REMOTE_ADDR', 'unknown')
         token = request.headers.get('X-Deploy-Token', '')
         secret = os.getenv('DEPLOY_SECRET', '')
         if not token or not secret or not hmac.compare_digest(token, secret):
+            logger.warning('Deploy auth failed | ip=%s', ip)
             return Response({'error': 'unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
 
+        logger.info('Deploy started | ip=%s', ip)
         repo_root = Path(settings.BASE_DIR).parent
         venv_python = repo_root / 'backend' / 'venv' / 'bin' / 'python'
         wsgi_file = Path('/var/www/wldn7601_pythonanywhere_com_wsgi.py')
@@ -76,9 +92,11 @@ class DeployView(APIView):
                 capture_output=True,
             )
             wsgi_file.touch()
+            logger.info('Deploy succeeded | ip=%s', ip)
             return Response({'status': 'ok'})
         except subprocess.CalledProcessError as e:
-            return Response({'error': e.stderr.decode()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error('Deploy failed | ip=%s | stderr=%s', ip, e.stderr.decode())
+            return Response({'error': 'deploy failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class StaticFileView(APIView):

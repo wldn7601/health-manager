@@ -119,24 +119,75 @@ export default function History() {
         <p className="text-slate-400 text-sm">기록이 없습니다.</p>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {sorted.map((session) => (
-          <div key={session.id} className="bg-white rounded-lg border p-4">
-            <h2 className="font-semibold mb-3">{session.date}</h2>
-            <SessionCard
-              session={session}
-              onUpdateSet={handleUpdateSet}
-              onDeleteSet={handleDeleteSet}
-              onExpandSet={handleExpandToDropset}
-              onExpandPairedSet={handleExpandToPaired}
-              onAddToGroup={handleAddToGroup}
-              categories={categories}
-              onError={setError}
-            />
-          </div>
+          <SessionRow
+            key={session.id}
+            session={session}
+            onUpdateSet={handleUpdateSet}
+            onDeleteSet={handleDeleteSet}
+            onExpandSet={handleExpandToDropset}
+            onExpandPairedSet={handleExpandToPaired}
+            onAddToGroup={handleAddToGroup}
+            categories={categories}
+            onError={setError}
+          />
         ))}
       </div>
     </section>
+  )
+}
+
+const CATEGORY_COLORS = {
+  '하체': 'bg-blue-100 text-blue-700',
+  '가슴': 'bg-red-100 text-red-700',
+  '등': 'bg-green-100 text-green-700',
+  '팔': 'bg-orange-100 text-orange-700',
+  '어깨': 'bg-purple-100 text-purple-700',
+}
+
+function CategoryBadge({ name }) {
+  const cls = CATEGORY_COLORS[name] || 'bg-slate-100 text-slate-600'
+  return <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${cls}`}>{name}</span>
+}
+
+function SessionRow({ session, onUpdateSet, onDeleteSet, onExpandSet, onExpandPairedSet, onAddToGroup, categories, onError }) {
+  const [open, setOpen] = useState(false)
+
+  const usedCategories = [...new Set(session.sets.map((s) => s.category_name).filter(Boolean))]
+
+  return (
+    <div className="bg-white rounded-lg border overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left active:bg-slate-50"
+      >
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-slate-800">{session.date}</span>
+          <div className="flex gap-1 flex-wrap">
+            {usedCategories.map((cat) => <CategoryBadge key={cat} name={cat} />)}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <span className="text-xs text-slate-400">{session.sets.length}세트</span>
+          <span className="text-slate-400 text-xs">{open ? '▲' : '▼'}</span>
+        </div>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 border-t pt-3">
+          <SessionCard
+            session={session}
+            onUpdateSet={onUpdateSet}
+            onDeleteSet={onDeleteSet}
+            onExpandSet={onExpandSet}
+            onExpandPairedSet={onExpandPairedSet}
+            onAddToGroup={onAddToGroup}
+            categories={categories}
+            onError={onError}
+          />
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -17,6 +17,15 @@ const PERIODS = [
   { label: '전체', value: 'all' },
 ]
 
+const METRICS = [
+  { key: 'max_weight',    label: '최고 중량',  unit: 'kg', color: '#2563eb' },
+  { key: 'avg_weight',    label: '평균 중량',  unit: 'kg', color: '#ea580c' },
+  { key: 'total_volume',  label: '총 볼륨',    unit: '',   color: '#16a34a' },
+  { key: 'set_count',     label: '세트 수',    unit: '세트', color: '#9333ea' },
+  { key: 'max_reps',      label: '최고 횟수',  unit: '회', color: '#db2777' },
+  { key: 'avg_reps',      label: '평균 횟수',  unit: '회', color: '#0891b2' },
+]
+
 export default function Progress() {
   const [exercises, setExercises] = useState([])
   const [selectedEx, setSelectedEx] = useState(null)
@@ -25,7 +34,6 @@ export default function Progress() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // 기록이 있는 운동 목록 수집 (세션들에서 추출)
   useEffect(() => {
     fetchSessions({ start: '2000-01-01', end: '2099-12-31' })
       .then((sessions) => {
@@ -71,11 +79,8 @@ export default function Progress() {
 
       {exercises.length > 0 && (
         <>
-          {/* 운동 선택 */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-slate-600 mb-2">
-              운동 선택
-            </label>
+            <label className="block text-sm font-semibold text-slate-600 mb-2">운동 선택</label>
             <select
               value={selectedEx?.id ?? ''}
               onChange={(e) => {
@@ -85,14 +90,11 @@ export default function Progress() {
               className="w-full px-3 py-2 border rounded text-sm outline-none focus:border-blue-400"
             >
               {exercises.map((ex) => (
-                <option key={ex.id} value={ex.id}>
-                  {ex.name}
-                </option>
+                <option key={ex.id} value={ex.id}>{ex.name}</option>
               ))}
             </select>
           </div>
 
-          {/* 기간 필터 */}
           <div className="mb-6 flex flex-wrap gap-2">
             {PERIODS.map((p) => (
               <button
@@ -121,31 +123,48 @@ export default function Progress() {
 }
 
 function ProgressCharts({ data }) {
+  const [selectedKey, setSelectedKey] = useState('max_weight')
   const points = data.data
 
   if (points.length === 0) {
-    return (
-      <p className="text-slate-400 text-sm">
-        선택한 기간에 기록이 없습니다.
-      </p>
-    )
+    return <p className="text-slate-400 text-sm">선택한 기간에 기록이 없습니다.</p>
   }
 
+  const latest = points[points.length - 1]
+  const selectedMetric = METRICS.find((m) => m.key === selectedKey)
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
+      {/* 지표 카드 그리드 — 누르면 해당 그래프로 전환 */}
+      <div className="grid grid-cols-3 gap-2">
+        {METRICS.map((m) => {
+          const active = selectedKey === m.key
+          return (
+            <button
+              key={m.key}
+              onClick={() => setSelectedKey(m.key)}
+              className={`rounded-xl border p-3 text-left transition ${
+                active ? 'border-2 bg-white' : 'bg-white border-slate-200'
+              }`}
+              style={active ? { borderColor: m.color } : {}}
+            >
+              <p className="text-xs text-slate-400 mb-1 truncate">{m.label}</p>
+              <p className="text-base font-bold leading-tight" style={{ color: m.color }}>
+                {latest[m.key]}
+                <span className="text-xs font-normal ml-0.5">{m.unit}</span>
+              </p>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 선택된 지표 그래프 */}
       <ChartCard
-        title="최대 중량 (kg)"
-        dataKey="max_weight"
+        title={selectedMetric.label}
+        dataKey={selectedMetric.key}
         points={points}
-        unit="kg"
-        color="#2563eb"
-      />
-      <ChartCard
-        title="총 볼륨 (kg × 횟수)"
-        dataKey="total_volume"
-        points={points}
-        unit=""
-        color="#16a34a"
+        unit={selectedMetric.unit}
+        color={selectedMetric.color}
       />
     </div>
   )
@@ -153,8 +172,10 @@ function ProgressCharts({ data }) {
 
 function ChartCard({ title, dataKey, points, unit, color }) {
   return (
-    <div className="bg-white rounded-lg border p-4">
-      <h2 className="text-sm font-semibold text-slate-600 mb-4">{title}</h2>
+    <div className="bg-white rounded-xl border p-4">
+      <h2 className="text-sm font-semibold text-slate-600 mb-4">
+        {title}{unit && <span className="text-xs font-normal text-slate-400 ml-1">({unit})</span>}
+      </h2>
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={points} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -163,10 +184,7 @@ function ChartCard({ title, dataKey, points, unit, color }) {
             tick={{ fontSize: 11, fill: '#94a3b8' }}
             tickFormatter={(v) => v.slice(5)}
           />
-          <YAxis
-            tick={{ fontSize: 11, fill: '#94a3b8' }}
-            width={40}
-          />
+          <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} width={40} />
           <Tooltip
             formatter={(v) => [`${v}${unit}`, title]}
             labelFormatter={(l) => l}

@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from django.db.models import F, Max, Sum
+from django.db.models import Avg, Count, F, Max, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -130,7 +130,7 @@ class WorkoutSessionListCreateView(generics.ListCreateAPIView):
         qs = (
             WorkoutSession.objects
             .filter(user=self.request.user)
-            .prefetch_related('sets', 'sets__exercise')
+            .prefetch_related('sets', 'sets__exercise', 'sets__exercise__category')
             .order_by('-date', '-created_at')
         )
         params = self.request.query_params
@@ -410,7 +410,11 @@ class ExerciseProgressView(APIView):
             .values('session__date')
             .annotate(
                 max_weight=Max('weight'),
+                avg_weight=Avg('weight'),
                 total_volume=Sum(F('weight') * F('reps')),
+                set_count=Count('id'),
+                max_reps=Max('reps'),
+                avg_reps=Avg('reps'),
             )
             .order_by('session__date')
         )
@@ -419,7 +423,11 @@ class ExerciseProgressView(APIView):
             {
                 'date': r['session__date'].isoformat(),
                 'max_weight': float(r['max_weight']),
+                'avg_weight': round(float(r['avg_weight']), 1),
                 'total_volume': float(r['total_volume']),
+                'set_count': r['set_count'],
+                'max_reps': r['max_reps'],
+                'avg_reps': round(float(r['avg_reps']), 1),
             }
             for r in rows
         ]
