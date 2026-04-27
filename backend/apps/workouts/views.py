@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from django.db.models import Avg, Count, F, Max, Sum
+from django.db.models import Avg, Count, F, Max, Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.response import Response
@@ -105,6 +105,8 @@ class ExerciseHistoryView(APIView):
                 'set_number': s.set_number,
                 'weight': str(s.weight),
                 'reps': s.reps,
+                'set_type': s.set_type,
+                'group_id': s.group_id,
             })
 
         return Response(list(grouped.values()))
@@ -412,7 +414,8 @@ class ExerciseProgressView(APIView):
                 max_weight=Max('weight'),
                 avg_weight=Avg('weight'),
                 total_volume=Sum(F('weight') * F('reps')),
-                set_count=Count('id'),
+                ungrouped_count=Count('id', filter=Q(group_id__isnull=True)),
+                grouped_count=Count('group_id', distinct=True, filter=Q(group_id__isnull=False)),
                 max_reps=Max('reps'),
                 avg_reps=Avg('reps'),
             )
@@ -425,7 +428,7 @@ class ExerciseProgressView(APIView):
                 'max_weight': float(r['max_weight']),
                 'avg_weight': round(float(r['avg_weight']), 1),
                 'total_volume': float(r['total_volume']),
-                'set_count': r['set_count'],
+                'set_count': r['ungrouped_count'] + r['grouped_count'],
                 'max_reps': r['max_reps'],
                 'avg_reps': round(float(r['avg_reps']), 1),
             }

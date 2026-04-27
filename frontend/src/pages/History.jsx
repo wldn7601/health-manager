@@ -155,6 +155,9 @@ function SessionRow({ session, onUpdateSet, onDeleteSet, onExpandSet, onExpandPa
   const [open, setOpen] = useState(false)
 
   const usedCategories = [...new Set(session.sets.map((s) => s.category_name).filter(Boolean))]
+  const ungroupedCount = session.sets.filter((s) => s.group_id == null).length
+  const groupIds = new Set(session.sets.filter((s) => s.group_id != null).map((s) => s.group_id))
+  const logicalSetCount = ungroupedCount + groupIds.size
 
   return (
     <div className="bg-white rounded-lg border overflow-hidden">
@@ -169,7 +172,7 @@ function SessionRow({ session, onUpdateSet, onDeleteSet, onExpandSet, onExpandPa
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-2">
-          <span className="text-xs text-slate-400">{session.sets.length}세트</span>
+          <span className="text-xs text-slate-400">{logicalSetCount}세트</span>
           <span className="text-slate-400 text-xs">{open ? '▲' : '▼'}</span>
         </div>
       </button>
