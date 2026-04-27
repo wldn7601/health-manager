@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from django.contrib.auth.models import User
-from django.db.models import Count, F, Max, Sum
+from django.db.models import Count, F, Max, Q, Sum
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -19,7 +19,7 @@ class AdminStatsView(APIView):
 
         active_7d = (
             WorkoutSession.objects
-            .filter(date__gte=week_ago)
+            .filter(date__gte=week_ago, user__is_staff=False)
             .values('user')
             .distinct()
             .count()
@@ -45,8 +45,7 @@ class AdminStatsView(APIView):
 
         return Response({
             'users': {
-                'total': User.objects.count(),
-                'staff': User.objects.filter(is_staff=True).count(),
+                'total': User.objects.filter(is_staff=False).count(),
                 'active_7d': active_7d,
             },
             'sessions': {
@@ -76,6 +75,7 @@ class AdminUserListView(APIView):
     def get(self, request):
         users = (
             User.objects
+            .filter(is_staff=False)
             .annotate(
                 session_count=Count('sessions', distinct=True),
                 set_count=Count('sessions__sets', distinct=True),
@@ -89,7 +89,6 @@ class AdminUserListView(APIView):
                 'id': u.id,
                 'username': u.username,
                 'email': u.email,
-                'is_staff': u.is_staff,
                 'date_joined': u.date_joined.date().isoformat(),
                 'last_login': u.last_login.date().isoformat() if u.last_login else None,
                 'session_count': u.session_count,
@@ -108,18 +107,25 @@ class AdminExerciseListView(APIView):
             Exercise.objects
             .select_related('category')
             .prefetch_related('aliases')
-            .annotate(usage_count=Count('sets'))
-            .order_by('-usage_count', 'canonical_name')
+            .annotate(
+                ungrouped=Count('sets', filter=Q(sets__group_id__isnull=True)),
+                grouped=Count('sets__group_id', distinct=True, filter=Q(sets__group_id__isnull=False)),
+            )
+            .order_by('canonical_name')
         )
 
-        return Response([
-            {
-                'id': ex.id,
-                'canonical_name': ex.canonical_name,
-                'category': ex.category.name,
-                'aliases': [a.alias for a in ex.aliases.all()],
-                'usage_count': ex.usage_count,
-                'created_at': ex.created_at.date().isoformat(),
-            }
-            for ex in exercises
-        ])
+        data = sorted(
+            [
+                {
+                    'id': ex.id,
+                    'canonical_name': ex.canonical_name,
+                    'category': ex.category.name,
+                    'aliases': [a.alias for a in ex.aliases.all()],
+                    'usage_count': ex.ungrouped + ex.grouped,
+                    'created_at': ex.created_at.date().isoformat(),
+                }
+                for ex in exercises
+            ],
+            key=lambda x: (-x['usage_count'], x['canonical_name']),
+        )
+        return Response(data)

@@ -81,10 +81,9 @@ function StatsTab({ stats }) {
     <div className="space-y-6">
       <div>
         <h2 className="text-sm font-semibold text-slate-500 mb-3">사용자</h2>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <StatCard label="전체 사용자" value={users.total} />
           <StatCard label="7일 활성" value={users.active_7d} color="text-blue-600" />
-          <StatCard label="관리자" value={users.staff} />
         </div>
       </div>
 
@@ -147,12 +146,7 @@ function UsersTab({ users }) {
       {users.map((u) => (
         <div key={u.id} className="bg-white rounded-xl border px-4 py-3">
           <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm text-slate-800">{u.username}</span>
-              {u.is_staff && (
-                <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">관리자</span>
-              )}
-            </div>
+            <span className="font-semibold text-sm text-slate-800">{u.username}</span>
             <span className="text-xs text-slate-400">가입 {u.date_joined}</span>
           </div>
           {u.email && <p className="text-xs text-slate-400 mb-2">{u.email}</p>}

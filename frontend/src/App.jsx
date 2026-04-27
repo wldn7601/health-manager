@@ -6,6 +6,7 @@ import History from './pages/History'
 import ExerciseDetail from './pages/ExerciseDetail'
 import Progress from './pages/Progress'
 import Admin from './pages/Admin'
+import MyPage from './pages/MyPage'
 
 const isLoggedIn = () => !!localStorage.getItem('access')
 
@@ -151,6 +152,24 @@ function AppShell() {
             ) : (
               <TopNav />
             )}
+            {!admin && (
+              <NavLink
+                to="/mypage"
+                className={({ isActive }) =>
+                  `p-1.5 rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                  }`
+                }
+                title="마이페이지"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                </svg>
+              </NavLink>
+            )}
             <button
               onClick={handleLogout}
               className="text-sm text-slate-400 hover:text-slate-700 py-1.5 px-3 rounded-lg hover:bg-slate-100 transition-colors"
@@ -168,6 +187,7 @@ function AppShell() {
           <Route path="/history" element={<History />} />
           <Route path="/exercise/:id" element={<ExerciseDetail />} />
           <Route path="/progress" element={<Progress />} />
+          <Route path="/mypage" element={<MyPage />} />
           <Route path="/admin-panel" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

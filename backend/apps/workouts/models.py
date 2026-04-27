@@ -96,12 +96,26 @@ class WorkoutTip(models.Model):
     )
     session = models.ForeignKey(
         WorkoutSession,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
+        on_delete=models.CASCADE,
         related_name='tips',
     )
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class EmailVerificationCode(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='email_verification_codes',
+    )
+    email = models.EmailField(db_index=True)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    used = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-created_at']
