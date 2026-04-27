@@ -88,6 +88,10 @@ class DeployView(APIView):
                 check=True, capture_output=True,
             )
             subprocess.run(
+                [str(venv_python), '-m', 'pip', 'install', '-r', str(repo_root / 'backend' / 'requirements.txt')],
+                check=True, capture_output=True,
+            )
+            subprocess.run(
                 [str(venv_python), 'manage.py', 'migrate', '--noinput'],
                 cwd=repo_root / 'backend',
                 check=True,
