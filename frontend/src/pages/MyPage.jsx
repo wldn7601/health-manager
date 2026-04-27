@@ -140,6 +140,7 @@ function ProfileSection({ me, onUpdate }) {
             <p className="text-xs text-slate-500">
               <span className="font-medium text-slate-700">{email}</span>으로 코드를 발송했습니다.
             </p>
+            <p className="text-xs text-slate-400">메일이 보이지 않으면 스팸함을 확인해주세요.</p>
             <div className="flex gap-2 items-center">
               <input
                 type="text"

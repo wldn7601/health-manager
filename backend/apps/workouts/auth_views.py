@@ -25,6 +25,71 @@ from rest_framework_simplejwt.views import TokenObtainPairView as _BaseTokenView
 logger = logging.getLogger(__name__)
 
 
+def _build_email_html(code):
+    return f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:48px 0;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:#1e293b;padding:36px 40px 32px;">
+              <p style="margin:0;font-size:11px;letter-spacing:3px;color:#94a3b8;text-transform:uppercase;">Health Manager</p>
+              <p style="margin:8px 0 0;font-size:22px;font-weight:700;color:#f8fafc;">이메일 인증</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px 40px 32px;">
+              <p style="margin:0 0 24px;font-size:14px;color:#64748b;line-height:1.7;">
+                아래 인증 코드를 입력하여 이메일 주소를 확인하세요.
+              </p>
+              <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:28px;text-align:center;margin-bottom:24px;">
+                <p style="margin:0 0 6px;font-size:11px;letter-spacing:2px;color:#94a3b8;text-transform:uppercase;">인증 코드</p>
+                <p style="margin:0;font-size:42px;font-weight:800;letter-spacing:10px;color:#1e293b;">{code}</p>
+              </div>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:#fef9ec;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;">
+                    <p style="margin:0;font-size:13px;color:#92400e;">
+                      ⏱ 이 코드는 <strong>3분</strong> 동안만 유효합니다.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="border-top:1px solid #f1f5f9;padding:24px 40px;background:#fafafa;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
+                본인이 요청하지 않은 경우 이 메일을 무시하세요.<br>
+                계정 보안에 이상이 있다면 즉시 비밀번호를 변경하세요.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+
+def _send_verification_email(email, code):
+    send_mail(
+        subject='[헬스 매니저] 이메일 인증 코드',
+        message=f'인증 코드: {code}\n\n이 코드는 3분간 유효합니다.\n본인이 요청하지 않은 경우 무시하세요.',
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+        fail_silently=False,
+        html_message=_build_email_html(code),
+    )
+
+
 class DeployRateThrottle(SimpleRateThrottle):
     scope = 'deploy'
 
@@ -33,25 +98,79 @@ class DeployRateThrottle(SimpleRateThrottle):
         return self.cache_format % {'scope': self.scope, 'ident': ident}
 
 
+class RegisterSendCodeView(APIView):
+    """POST /api/auth/register/send-code/ — 회원가입 이메일 인증 코드 발송 (비인증)"""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from .models import EmailVerificationCode
+        username = request.data.get('username', '').strip()
+        email = request.data.get('email', '').strip().lower()
+
+        if not username:
+            return Response({'error': '아이디를 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(username=username).exists():
+            return Response({'error': '이미 사용 중인 아이디입니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not email:
+            return Response({'error': '이메일을 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            validate_email(email)
+        except DjangoValidationError:
+            return Response({'error': '올바른 이메일 형식이 아닙니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(email=email).exists():
+            return Response({'error': '이미 사용 중인 이메일입니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        EmailVerificationCode.objects.filter(email=email, user__isnull=True).delete()
+        EmailVerificationCode.objects.filter(
+            created_at__lt=timezone.now() - timedelta(minutes=10)
+        ).delete()
+
+        code = str(secrets.randbelow(900000) + 100000)
+        EmailVerificationCode.objects.create(user=None, email=email, code=code)
+
+        try:
+            _send_verification_email(email, code)
+        except Exception as e:
+            logger.error('Register email send failed | username=%s | error=%s', username, e)
+            return Response({'error': '이메일 발송에 실패했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({'status': 'sent'})
+
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        from .models import EmailVerificationCode
         username = request.data.get('username', '').strip()
         password = request.data.get('password', '')
+        email = request.data.get('email', '').strip().lower()
+        code = request.data.get('code', '').strip()
 
-        if not username or not password:
+        if not username or not password or not email or not code:
             return Response(
-                {'error': '아이디와 비밀번호를 입력해주세요.'},
+                {'error': '모든 항목을 입력해주세요.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if User.objects.filter(username=username).exists():
-            return Response(
-                {'error': '이미 사용 중인 아이디입니다.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({'error': '이미 사용 중인 아이디입니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(email=email).exists():
+            return Response({'error': '이미 사용 중인 이메일입니다.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.create_user(username=username, password=password)
+        try:
+            verification = EmailVerificationCode.objects.filter(
+                email=email, code=code, used=False, user__isnull=True,
+            ).latest('created_at')
+        except EmailVerificationCode.DoesNotExist:
+            return Response({'error': '인증 코드가 올바르지 않습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if (timezone.now() - verification.created_at).total_seconds() > 180:
+            return Response({'error': '인증 코드가 만료됐습니다. 다시 발송해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        verification.used = True
+        verification.save(update_fields=['used'])
+
+        user = User.objects.create_user(username=username, password=password, email=email)
         refresh = RefreshToken.for_user(user)
         return Response(
             {'access': str(refresh.access_token), 'refresh': str(refresh)},
@@ -177,78 +296,8 @@ class SendEmailCodeView(APIView):
         code = str(secrets.randbelow(900000) + 100000)
         EmailVerificationCode.objects.create(user=request.user, email=email, code=code)
 
-        html_message = f"""<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:48px 0;">
-    <tr>
-      <td align="center">
-        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-
-          <!-- Header -->
-          <tr>
-            <td style="background:#1e293b;padding:36px 40px 32px;">
-              <p style="margin:0;font-size:11px;letter-spacing:3px;color:#94a3b8;text-transform:uppercase;">Health Manager</p>
-              <p style="margin:8px 0 0;font-size:22px;font-weight:700;color:#f8fafc;">이메일 인증</p>
-            </td>
-          </tr>
-
-          <!-- Body -->
-          <tr>
-            <td style="padding:40px 40px 32px;">
-              <p style="margin:0 0 24px;font-size:14px;color:#64748b;line-height:1.7;">
-                아래 인증 코드를 입력하여 이메일 주소를 확인하세요.
-              </p>
-
-              <!-- Code box -->
-              <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:28px;text-align:center;margin-bottom:24px;">
-                <p style="margin:0 0 6px;font-size:11px;letter-spacing:2px;color:#94a3b8;text-transform:uppercase;">인증 코드</p>
-                <p style="margin:0;font-size:42px;font-weight:800;letter-spacing:10px;color:#1e293b;">{code}</p>
-              </div>
-
-              <!-- Expiry notice -->
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="background:#fef9ec;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;">
-                    <p style="margin:0;font-size:13px;color:#92400e;">
-                      ⏱ 이 코드는 <strong>3분</strong> 동안만 유효합니다.
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="border-top:1px solid #f1f5f9;padding:24px 40px;background:#fafafa;">
-              <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
-                본인이 요청하지 않은 경우 이 메일을 무시하세요.<br>
-                계정 보안에 이상이 있다면 즉시 비밀번호를 변경하세요.
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>"""
-
         try:
-            send_mail(
-                subject='[헬스 매니저] 이메일 인증 코드',
-                message=f'인증 코드: {code}\n\n이 코드는 3분간 유효합니다.\n본인이 요청하지 않은 경우 무시하세요.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-                html_message=html_message,
-            )
+            _send_verification_email(email, code)
         except Exception as e:
             logger.error('Email send failed | user=%s | error=%s', request.user.username, e)
             return Response({'error': '이메일 발송에 실패했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
