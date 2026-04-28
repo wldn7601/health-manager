@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { actionExerciseRequest, fetchAdminExerciseRequests, fetchAdminExercises, fetchAdminStats, fetchAdminUsers, updateAdminExercise } from '../api/admin'
+import { actionExerciseRequest, createAdminExercise, fetchAdminExerciseRequests, fetchAdminExercises, fetchAdminStats, fetchAdminUsers, updateAdminExercise } from '../api/admin'
+import { fetchCategories } from '../api/workouts'
 
 const TABS = ['개요', '사용자', '운동', '요청']
 
@@ -8,9 +9,14 @@ export default function Admin() {
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState(null)
   const [exercises, setExercises] = useState(null)
+  const [categories, setCategories] = useState([])
   const [requests, setRequests] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchCategories().then(setCategories).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (tab === '개요' && !stats) load(fetchAdminStats, setStats)
@@ -61,7 +67,7 @@ export default function Admin() {
 
       {!loading && !error && tab === '개요' && stats && <StatsTab stats={stats} />}
       {!loading && !error && tab === '사용자' && users && <UsersTab users={users} />}
-      {!loading && !error && tab === '운동' && exercises && <ExercisesTab exercises={exercises} />}
+      {!loading && !error && tab === '운동' && exercises && <ExercisesTab exercises={exercises} setExercises={setExercises} categories={categories} />}
       {!loading && !error && tab === '요청' && requests && <RequestsTab requests={requests} setRequests={setRequests} />}
     </section>
   )
@@ -165,9 +171,37 @@ function UsersTab({ users }) {
   )
 }
 
-function ExercisesTab({ exercises: initialExercises }) {
+function ExercisesTab({ exercises: initialExercises, setExercises: setExercisesOuter, categories }) {
   const [exercises, setExercises] = useState(initialExercises)
   const [search, setSearch] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newCat, setNewCat] = useState('')
+  const [newBodyweight, setNewBodyweight] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState(null)
+
+  useEffect(() => {
+    if (categories.length > 0 && !newCat) setNewCat(String(categories[0].id))
+  }, [categories, newCat])
+
+  const handleCreate = async (e) => {
+    e.preventDefault()
+    if (!newName.trim()) { setFormError('운동명을 입력해주세요.'); return }
+    setSaving(true); setFormError(null)
+    try {
+      const ex = await createAdminExercise({ category: Number(newCat), canonical_name: newName.trim(), is_bodyweight: newBodyweight })
+      const cat = categories.find((c) => c.id === Number(newCat))
+      const newEntry = { id: ex.id, canonical_name: ex.canonical_name, category: cat?.name ?? '', aliases: [], usage_count: 0, is_bodyweight: ex.is_bodyweight, created_at: new Date().toISOString().slice(0, 10) }
+      setExercises((prev) => [newEntry, ...prev])
+      setExercisesOuter((prev) => [newEntry, ...prev])
+      setNewName(''); setNewBodyweight(false); setShowForm(false)
+    } catch (e) {
+      setFormError(e.response?.data?.detail || String(e))
+    } finally {
+      setSaving(false)
+    }
+  }
   const filtered = search.trim()
     ? exercises.filter(
         (ex) =>
@@ -201,7 +235,43 @@ function ExercisesTab({ exercises: initialExercises }) {
           className="flex-1 px-3 py-2 border rounded text-sm outline-none focus:border-blue-400"
         />
         <span className="text-xs text-slate-400 shrink-0">{filtered.length}개</span>
+        <button
+          onClick={() => { setShowForm((v) => !v); setFormError(null) }}
+          className="shrink-0 px-3 py-2 text-sm bg-blue-600 text-white rounded"
+        >
+          {showForm ? '취소' : '+ 추가'}
+        </button>
       </div>
+
+      {showForm && (
+        <form onSubmit={handleCreate} className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-semibold text-slate-700">새 운동 등록</p>
+          <div className="flex gap-2">
+            <select
+              value={newCat}
+              onChange={(e) => setNewCat(e.target.value)}
+              className="px-2 py-2 border rounded text-sm outline-none focus:border-blue-400"
+            >
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="운동명"
+              className="flex-1 px-3 py-2 border rounded text-sm outline-none focus:border-blue-400"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+            <input type="checkbox" checked={newBodyweight} onChange={(e) => setNewBodyweight(e.target.checked)} />
+            맨몸 운동
+          </label>
+          {formError && <p className="text-xs text-red-500">{formError}</p>}
+          <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-blue-600 text-white rounded disabled:bg-slate-300">
+            등록
+          </button>
+        </form>
+      )}
 
       {filtered.map((ex) => (
         <div key={ex.id} className="bg-white rounded-xl border px-4 py-3">

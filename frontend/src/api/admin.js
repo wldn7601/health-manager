@@ -12,6 +12,9 @@ export const fetchAdminExercises = () =>
 export const updateAdminExercise = (id, data) =>
   client.patch(`/admin/exercises/${id}/`, data).then((r) => r.data)
 
+export const createAdminExercise = ({ category, canonical_name, is_bodyweight }) =>
+  client.post('/exercises/', { category, canonical_name, is_bodyweight }).then((r) => r.data)
+
 export const fetchAdminExerciseRequests = (status) =>
   client.get('/admin/exercise-requests/', { params: status ? { status } : {} }).then((r) => r.data)
 
