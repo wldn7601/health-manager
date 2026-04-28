@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchAdminExercises, fetchAdminStats, fetchAdminUsers } from '../api/admin'
+import { fetchAdminExercises, fetchAdminStats, fetchAdminUsers, updateAdminExercise } from '../api/admin'
 
 const TABS = ['개요', '사용자', '운동']
 
@@ -162,7 +162,8 @@ function UsersTab({ users }) {
   )
 }
 
-function ExercisesTab({ exercises }) {
+function ExercisesTab({ exercises: initialExercises }) {
+  const [exercises, setExercises] = useState(initialExercises)
   const [search, setSearch] = useState('')
   const filtered = search.trim()
     ? exercises.filter(
@@ -179,6 +180,11 @@ function ExercisesTab({ exercises }) {
     등: 'bg-green-100 text-green-700',
     팔: 'bg-orange-100 text-orange-700',
     어깨: 'bg-purple-100 text-purple-700',
+  }
+
+  const handleToggleBodyweight = async (ex) => {
+    const updated = await updateAdminExercise(ex.id, { is_bodyweight: !ex.is_bodyweight })
+    setExercises((prev) => prev.map((e) => e.id === ex.id ? { ...e, is_bodyweight: updated.is_bodyweight } : e))
   }
 
   return (
@@ -202,13 +208,28 @@ function ExercisesTab({ exercises }) {
               <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${CATEGORY_COLORS[ex.category] || 'bg-slate-100 text-slate-600'}`}>
                 {ex.category}
               </span>
+              {ex.is_bodyweight && (
+                <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-teal-100 text-teal-700">맨몸</span>
+              )}
             </div>
             <span className="text-xs text-slate-400 shrink-0">사용 {ex.usage_count}회</span>
           </div>
           {ex.aliases.length > 0 && (
             <p className="text-xs text-slate-400">별칭: {ex.aliases.join(', ')}</p>
           )}
-          <p className="text-xs text-slate-300 mt-1">등록 {ex.created_at}</p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-slate-300">등록 {ex.created_at}</p>
+            <button
+              onClick={() => handleToggleBodyweight(ex)}
+              className={`text-xs px-2.5 py-1 rounded border transition ${
+                ex.is_bodyweight
+                  ? 'border-teal-400 text-teal-600 bg-teal-50'
+                  : 'border-slate-300 text-slate-500'
+              }`}
+            >
+              {ex.is_bodyweight ? '맨몸 ✓' : '맨몸 설정'}
+            </button>
+          </div>
         </div>
       ))}
     </div>

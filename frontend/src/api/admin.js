@@ -8,3 +8,6 @@ export const fetchAdminUsers = () =>
 
 export const fetchAdminExercises = () =>
   client.get('/admin/exercises/').then((r) => r.data)
+
+export const updateAdminExercise = (id, data) =>
+  client.patch(`/admin/exercises/${id}/`, data).then((r) => r.data)

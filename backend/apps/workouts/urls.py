@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .admin_views import AdminExerciseListView, AdminStatsView, AdminUserListView
+from .admin_views import AdminExerciseListView, AdminExerciseUpdateView, AdminStatsView, AdminUserListView
 from .views import (
     AddDropToGroupView,
     CategoryListView,
@@ -50,4 +50,5 @@ urlpatterns = [
     path('admin/stats/', AdminStatsView.as_view(), name='admin-stats'),
     path('admin/users/', AdminUserListView.as_view(), name='admin-users'),
     path('admin/exercises/', AdminExerciseListView.as_view(), name='admin-exercises'),
+    path('admin/exercises/<int:pk>/', AdminExerciseUpdateView.as_view(), name='admin-exercise-update'),
 ]

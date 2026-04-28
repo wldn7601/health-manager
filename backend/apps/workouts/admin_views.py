@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from django.contrib.auth.models import User
 from django.db.models import Count, F, Max, Q, Sum
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -122,6 +123,7 @@ class AdminExerciseListView(APIView):
                     'category': ex.category.name,
                     'aliases': [a.alias for a in ex.aliases.all()],
                     'usage_count': ex.ungrouped + ex.grouped,
+                    'is_bodyweight': ex.is_bodyweight,
                     'created_at': ex.created_at.date().isoformat(),
                 }
                 for ex in exercises
@@ -129,3 +131,14 @@ class AdminExerciseListView(APIView):
             key=lambda x: (-x['usage_count'], x['canonical_name']),
         )
         return Response(data)
+
+
+class AdminExerciseUpdateView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def patch(self, request, pk):
+        exercise = get_object_or_404(Exercise, pk=pk)
+        if 'is_bodyweight' in request.data:
+            exercise.is_bodyweight = bool(request.data['is_bodyweight'])
+            exercise.save(update_fields=['is_bodyweight'])
+        return Response({'id': exercise.id, 'is_bodyweight': exercise.is_bodyweight})

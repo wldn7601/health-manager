@@ -124,7 +124,7 @@ function AppShell() {
   const handleLogout = () => {
     localStorage.removeItem('access')
     localStorage.removeItem('refresh')
-    navigate('/login', { replace: true })
+    window.location.replace('/login')
   }
 
   return (
