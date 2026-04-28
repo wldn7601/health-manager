@@ -103,7 +103,7 @@ class ExerciseHistoryView(APIView):
             grouped[sid]['sets'].append({
                 'id': s.id,
                 'set_number': s.set_number,
-                'weight': str(s.weight),
+                'weight': float(s.weight) if s.weight is not None else None,
                 'reps': s.reps,
                 'set_type': s.set_type,
                 'group_id': s.group_id,
@@ -425,9 +425,9 @@ class ExerciseProgressView(APIView):
         data = [
             {
                 'date': r['session__date'].isoformat(),
-                'max_weight': float(r['max_weight']),
-                'avg_weight': round(float(r['avg_weight']), 1),
-                'total_volume': float(r['total_volume']),
+                'max_weight': float(r['max_weight']) if r['max_weight'] is not None else 0,
+                'avg_weight': round(float(r['avg_weight']), 1) if r['avg_weight'] is not None else 0,
+                'total_volume': float(r['total_volume']) if r['total_volume'] is not None else 0,
                 'set_count': r['ungrouped_count'] + r['grouped_count'],
                 'max_reps': r['max_reps'],
                 'avg_reps': round(float(r['avg_reps']), 1),

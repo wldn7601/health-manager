@@ -281,7 +281,7 @@ function ExerciseSessionRow({ session, stats }) {
                       </span>
                     )}
                   </div>
-                  <span className="text-slate-700">{Number(item.data.weight)}kg × {item.data.reps}회</span>
+                  <span className="text-slate-700">{item.data.weight == null ? '맨몸' : `${Number(item.data.weight)}kg`} × {item.data.reps}회</span>
                 </li>
               ) : (
                 <li key={item.key} className="py-0.5">
@@ -297,7 +297,7 @@ function ExerciseSessionRow({ session, stats }) {
                     {item.data.map((s, i) => (
                       <div key={s.id} className="flex items-center justify-between text-xs">
                         <span className="text-slate-400">{i + 1}번째</span>
-                        <span className="text-slate-700">{Number(s.weight)}kg × {s.reps}회</span>
+                        <span className="text-slate-700">{s.weight == null ? '맨몸' : `${Number(s.weight)}kg`} × {s.reps}회</span>
                       </div>
                     ))}
                   </div>

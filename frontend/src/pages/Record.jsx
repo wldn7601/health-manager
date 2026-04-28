@@ -226,6 +226,7 @@ function ExercisePicker({ category, onPick, onError }) {
   const debounced = useDebounce(query, 300)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [isBodyweight, setIsBodyweight] = useState(false)
 
   useEffect(() => {
     if (!debounced.trim()) { setResult(null); return }
@@ -238,12 +239,19 @@ function ExercisePicker({ category, onPick, onError }) {
 
   const handleRegisterNew = async () => {
     try {
-      const ex = await createExercise({ category: category.id, canonical_name: query.trim() })
+      const ex = await createExercise({ category: category.id, canonical_name: query.trim(), is_bodyweight: isBodyweight })
       onPick({ ...ex, aliases: [ex.canonical_name] })
     } catch (e) {
       onError(String(e))
     }
   }
+
+  const BodyweightToggle = () => (
+    <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer mt-2">
+      <input type="checkbox" checked={isBodyweight} onChange={(e) => setIsBodyweight(e.target.checked)} />
+      맨몸 운동 (중량 없이 기록)
+    </label>
+  )
 
   return (
     <div className="mb-6 bg-white rounded-lg border p-4">
@@ -269,11 +277,13 @@ function ExercisePicker({ category, onPick, onError }) {
             <button onClick={() => onPick(result.matched)} className="px-3 py-1 text-sm bg-blue-600 text-white rounded">예, 맞아요</button>
             <button onClick={handleRegisterNew} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded">아니요, "{query.trim()}"로 새로 등록</button>
           </div>
+          <BodyweightToggle />
         </div>
       )}
       {result && !loading && result.is_new && query.trim() && (
         <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded">
           <p className="text-sm text-slate-700">"<span className="font-semibold">{query.trim()}</span>" 는 처음 보는 운동이에요.</p>
+          <BodyweightToggle />
           <button onClick={handleRegisterNew} className="mt-2 px-3 py-1 text-sm bg-amber-600 text-white rounded">새 운동으로 등록</button>
         </div>
       )}
@@ -287,6 +297,7 @@ function MiniExercisePicker({ categories, excludeId, onPick, onError }) {
   const debounced = useDebounce(query, 300)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [isBodyweight, setIsBodyweight] = useState(false)
 
   useEffect(() => {
     if (categories.length > 0 && !selectedCat) setSelectedCat(categories[0])
@@ -303,7 +314,7 @@ function MiniExercisePicker({ categories, excludeId, onPick, onError }) {
 
   const handleRegisterNew = async () => {
     try {
-      const ex = await createExercise({ category: selectedCat.id, canonical_name: query.trim() })
+      const ex = await createExercise({ category: selectedCat.id, canonical_name: query.trim(), is_bodyweight: isBodyweight })
       onPick({ ...ex, aliases: [ex.canonical_name] })
     } catch (e) {
       onError(String(e))
@@ -348,11 +359,19 @@ function MiniExercisePicker({ categories, excludeId, onPick, onError }) {
             <button type="button" onClick={handleRegisterNew}
               className="px-2 py-0.5 text-xs border rounded text-slate-600">"{query.trim()}"으로 새로 등록</button>
           </div>
+          <label className="flex items-center gap-1 text-xs text-slate-600 cursor-pointer mt-1.5">
+            <input type="checkbox" checked={isBodyweight} onChange={(e) => setIsBodyweight(e.target.checked)} />
+            맨몸 운동
+          </label>
         </div>
       )}
       {result && !loading && result.is_new && query.trim() && (
         <div className="p-2 bg-amber-50 border border-amber-200 rounded">
           <p className="text-xs text-slate-700">새 운동 "<span className="font-semibold">{query.trim()}</span>"</p>
+          <label className="flex items-center gap-1 text-xs text-slate-600 cursor-pointer mt-1.5">
+            <input type="checkbox" checked={isBodyweight} onChange={(e) => setIsBodyweight(e.target.checked)} />
+            맨몸 운동
+          </label>
           <button type="button" onClick={handleRegisterNew}
             className="mt-1 px-2 py-0.5 text-xs bg-amber-600 text-white rounded">새 운동으로 등록</button>
         </div>
@@ -363,15 +382,15 @@ function MiniExercisePicker({ categories, excludeId, onPick, onError }) {
 
 function SetRow({ set, onUpdate, onDelete, onExpand, onExpandPaired, categories, onError }) {
   const [editing, setEditing] = useState(false)
-  const [weight, setWeight] = useState(String(Number(set.weight)))
+  const [weight, setWeight] = useState(set.weight != null ? String(Number(set.weight)) : '')
   const [reps, setReps] = useState(String(set.reps))
   const [setType, setSetType] = useState(set.set_type || 'normal')
   const [dropRows, setDropRows] = useState([
-    { weight: String(Number(set.weight)), reps: String(set.reps) },
+    { weight: set.weight != null ? String(Number(set.weight)) : '', reps: String(set.reps) },
     { weight: '', reps: '' },
   ])
   const [ex2, setEx2] = useState(null)
-  const [weight1, setWeight1] = useState(String(Number(set.weight)))
+  const [weight1, setWeight1] = useState(set.weight != null ? String(Number(set.weight)) : '')
   const [reps1, setReps1] = useState(String(set.reps))
   const [weight2, setWeight2] = useState('')
   const [reps2, setReps2] = useState('')
@@ -538,8 +557,10 @@ function SetRow({ set, onUpdate, onDelete, onExpand, onExpandPaired, categories,
           <span className="text-xs text-slate-400">회</span>
           <button disabled={saving}
             onClick={async () => {
-              const w = parseFloat(weight), r = parseInt(reps, 10)
-              if (Number.isNaN(w) || Number.isNaN(r) || r <= 0) { onError('올바른 값을 입력해주세요.'); return }
+              const w = weight.trim() === '' ? null : parseFloat(weight)
+              const r = parseInt(reps, 10)
+              if (w !== null && Number.isNaN(w)) { onError('올바른 값을 입력해주세요.'); return }
+              if (Number.isNaN(r) || r <= 0) { onError('올바른 값을 입력해주세요.'); return }
               setSaving(true)
               try { await onUpdate(set.id, { weight: w, reps: r, set_type: setType }); setEditing(false) }
               catch (e) { onError(String(e)) }
@@ -559,7 +580,7 @@ function SetRow({ set, onUpdate, onDelete, onExpand, onExpandPaired, categories,
         <SetTypeBadge type={set.set_type} />
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-sm">{Number(set.weight)}kg × {set.reps}회</span>
+        <span className="text-sm">{set.weight == null ? '맨몸' : `${Number(set.weight)}kg`} × {set.reps}회</span>
         <button onClick={() => setEditing(true)} className="text-xs text-blue-500 py-1 px-2">수정</button>
         <button onClick={async () => { try { await onDelete(set.id) } catch (e) { onError(String(e)) } }}
           className="text-xs text-red-400 py-1 px-2">삭제</button>
@@ -605,7 +626,7 @@ function DropRow({ set, index, onUpdate, onDelete, onError }) {
         {set.set_type !== 'dropset' && (
           <span className="text-xs text-slate-500 font-medium mr-1">{set.exercise_name}</span>
         )}
-        {Number(set.weight)}kg × {set.reps}회
+        {set.weight == null ? '맨몸' : `${Number(set.weight)}kg`} × {set.reps}회
       </span>
       <div className="flex gap-1">
         <button onClick={() => setEditing(true)} className="text-xs text-blue-500 py-0.5 px-2">수정</button>
@@ -702,6 +723,7 @@ function ExerciseSetPanel({ exercise, sets, categories, onAddSet, onAddGrouped, 
   const [setType, setSetType] = useState('normal')
   const [weight, setWeight] = useState('')
   const [reps, setReps] = useState('')
+  const [addedWeight, setAddedWeight] = useState(false)
   const [dropRows, setDropRows] = useState([{ weight: '', reps: '' }, { weight: '', reps: '' }])
   const [ex2, setEx2] = useState(null)
   const [weight1, setWeight1] = useState('')
@@ -725,8 +747,13 @@ function ExerciseSetPanel({ exercise, sets, categories, onAddSet, onAddGrouped, 
 
   const handleSubmitNormal = async (e) => {
     e.preventDefault()
-    const w = parseFloat(weight), r = parseInt(reps, 10)
-    if (Number.isNaN(w) || Number.isNaN(r) || r <= 0) { onError('중량과 횟수를 올바르게 입력해주세요.'); return }
+    const r = parseInt(reps, 10)
+    if (Number.isNaN(r) || r <= 0) { onError('횟수를 올바르게 입력해주세요.'); return }
+    let w = null
+    if (!exercise.is_bodyweight || addedWeight) {
+      w = parseFloat(weight)
+      if (Number.isNaN(w)) { onError('중량을 올바르게 입력해주세요.'); return }
+    }
     setSaving(true)
     try { await onAddSet({ weight: w, reps: r, set_type: 'normal' }); setWeight(''); setReps('') }
     catch (err) { onError(String(err)) }
@@ -821,11 +848,25 @@ function ExerciseSetPanel({ exercise, sets, categories, onAddSet, onAddGrouped, 
 
       {setType === 'normal' && (
         <form onSubmit={handleSubmitNormal} className="flex gap-2 items-end">
-          <div className="flex-1">
-            <label className="block text-xs text-slate-500 mb-1">중량 (kg)</label>
-            <input type="number" step="0.5" value={weight} onChange={(e) => setWeight(e.target.value)}
-              className="w-full px-2 py-2 border rounded text-sm" />
-          </div>
+          {exercise.is_bodyweight ? (
+            <div className="flex-1 space-y-1">
+              <label className="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer">
+                <input type="checkbox" checked={addedWeight}
+                  onChange={(e) => { setAddedWeight(e.target.checked); if (!e.target.checked) setWeight('') }} />
+                추가 중량
+              </label>
+              {addedWeight && (
+                <input type="number" step="0.5" value={weight} onChange={(e) => setWeight(e.target.value)}
+                  placeholder="kg" className="w-full px-2 py-2 border rounded text-sm" />
+              )}
+            </div>
+          ) : (
+            <div className="flex-1">
+              <label className="block text-xs text-slate-500 mb-1">중량 (kg)</label>
+              <input type="number" step="0.5" value={weight} onChange={(e) => setWeight(e.target.value)}
+                className="w-full px-2 py-2 border rounded text-sm" />
+            </div>
+          )}
           <div className="flex-1">
             <label className="block text-xs text-slate-500 mb-1">횟수</label>
             <input type="number" value={reps} onChange={(e) => setReps(e.target.value)}

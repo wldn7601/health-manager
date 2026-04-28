@@ -22,8 +22,8 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
-    list_display = ('id', 'category', 'canonical_name', 'created_at')
-    list_filter = ('category',)
+    list_display = ('id', 'category', 'canonical_name', 'is_bodyweight', 'created_at')
+    list_filter = ('category', 'is_bodyweight')
     search_fields = ('canonical_name', 'aliases__alias')
     inlines = [ExerciseAliasInline]
 

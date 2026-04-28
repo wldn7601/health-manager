@@ -21,7 +21,7 @@ class ExerciseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Exercise
-        fields = ('id', 'category', 'canonical_name', 'aliases', 'created_at')
+        fields = ('id', 'category', 'canonical_name', 'aliases', 'is_bodyweight', 'created_at')
 
     def get_aliases(self, obj):
         return [a.alias for a in obj.aliases.all()]
@@ -34,7 +34,7 @@ class ExerciseCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Exercise
-        fields = ('id', 'category', 'canonical_name')
+        fields = ('id', 'category', 'canonical_name', 'is_bodyweight')
 
     def create(self, validated_data):
         exercise = Exercise.objects.create(**validated_data)

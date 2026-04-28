@@ -473,7 +473,7 @@ function SetRow({ set, onUpdate, onDelete, onExpand, onExpandPaired, categories,
         <SetTypeBadge type={set.set_type} />
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-sm">{Number(set.weight)}kg × {set.reps}회</span>
+        <span className="text-sm">{set.weight == null ? '맨몸' : `${Number(set.weight)}kg`} × {set.reps}회</span>
         <button onClick={() => setEditing(true)} className="text-xs text-blue-500 py-1 px-2">수정</button>
         <button onClick={async () => { try { await onDelete(set.id) } catch (e) { onError(String(e)) } }}
           className="text-xs text-red-400 py-1 px-2">삭제</button>
@@ -519,7 +519,7 @@ function DropRow({ set, index, onUpdate, onDelete, onError }) {
         {set.set_type !== 'dropset' && (
           <span className="text-xs text-slate-500 font-medium mr-1">{set.exercise_name}</span>
         )}
-        {Number(set.weight)}kg × {set.reps}회
+        {set.weight == null ? '맨몸' : `${Number(set.weight)}kg`} × {set.reps}회
       </span>
       <div className="flex gap-1">
         <button onClick={() => setEditing(true)} className="text-xs text-blue-500 py-0.5 px-2">수정</button>

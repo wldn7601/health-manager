@@ -17,6 +17,7 @@ class Exercise(models.Model):
         Category, on_delete=models.PROTECT, related_name='exercises'
     )
     canonical_name = models.CharField(max_length=100)
+    is_bodyweight = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -74,7 +75,7 @@ class WorkoutSet(models.Model):
         Exercise, on_delete=models.PROTECT, related_name='sets'
     )
     set_number = models.PositiveSmallIntegerField()
-    weight = models.DecimalField(max_digits=6, decimal_places=2)
+    weight = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     reps = models.PositiveSmallIntegerField()
     set_type = models.CharField(max_length=10, choices=SET_TYPE_CHOICES, default='normal')
     group_id = models.PositiveIntegerField(null=True, blank=True)
