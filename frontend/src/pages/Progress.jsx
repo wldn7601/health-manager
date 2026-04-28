@@ -270,11 +270,11 @@ function ExerciseSessionRow({ session, stats }) {
       {open && (
         <div className="border-t px-4 py-3">
           <ul className="space-y-1.5 text-sm">
-            {items.map((item) =>
+            {items.map((item, i) =>
               item.type === 'single' ? (
                 <li key={item.key} className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400 text-xs">세트 {item.data.set_number}</span>
+                    <span className="text-slate-400 text-xs">세트 {i + 1}</span>
                     {SET_TYPE_BADGE[item.data.set_type] && (
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${SET_TYPE_BADGE[item.data.set_type].color}`}>
                         {SET_TYPE_BADGE[item.data.set_type].label}
@@ -286,7 +286,7 @@ function ExerciseSessionRow({ session, stats }) {
               ) : (
                 <li key={item.key} className="py-0.5">
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-slate-400 text-xs">세트 {item.data[0].set_number}</span>
+                    <span className="text-slate-400 text-xs">세트 {i + 1}</span>
                     {SET_TYPE_BADGE[item.data[0].set_type] && (
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${SET_TYPE_BADGE[item.data[0].set_type].color}`}>
                         {SET_TYPE_BADGE[item.data[0].set_type].label}

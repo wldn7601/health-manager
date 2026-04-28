@@ -276,7 +276,7 @@ function SetTypeBadge({ type }) {
   )
 }
 
-function SetRow({ set, onUpdate, onDelete, onExpand, onExpandPaired, categories, onError }) {
+function SetRow({ set, displayNum, onUpdate, onDelete, onExpand, onExpandPaired, categories, onError }) {
   const [editing, setEditing] = useState(false)
   const [weight, setWeight] = useState(String(Number(set.weight)))
   const [reps, setReps] = useState(String(set.reps))
@@ -443,7 +443,7 @@ function SetRow({ set, onUpdate, onDelete, onExpand, onExpandPaired, categories,
           ))}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-slate-500 text-sm shrink-0">세트 {set.set_number}</span>
+          <span className="text-slate-500 text-sm shrink-0">세트 {displayNum}</span>
           <input type="number" step="0.5" value={weight} onChange={(e) => setWeight(e.target.value)}
             className="w-20 px-2 py-1.5 border rounded text-sm" />
           <span className="text-xs text-slate-400">kg</span>
@@ -469,7 +469,7 @@ function SetRow({ set, onUpdate, onDelete, onExpand, onExpandPaired, categories,
   return (
     <li className="py-2 flex items-center justify-between">
       <div className="flex items-center gap-1.5">
-        <span className="text-slate-500 text-sm">세트 {set.set_number}</span>
+        <span className="text-slate-500 text-sm">세트 {displayNum}</span>
         <SetTypeBadge type={set.set_type} />
       </div>
       <div className="flex items-center gap-3">
@@ -530,7 +530,7 @@ function DropRow({ set, index, onUpdate, onDelete, onError }) {
   )
 }
 
-function DropsetGroupRow({ sets, onUpdate, onDelete, onAddToGroup, onError }) {
+function DropsetGroupRow({ sets, displayNum, onUpdate, onDelete, onAddToGroup, onError }) {
   const [addingDrop, setAddingDrop] = useState(false)
   const [newWeight, setNewWeight] = useState('')
   const [newReps, setNewReps] = useState('')
@@ -542,7 +542,7 @@ function DropsetGroupRow({ sets, onUpdate, onDelete, onAddToGroup, onError }) {
   return (
     <li className="py-2 px-1">
       <div className="flex items-center gap-1.5 mb-0.5">
-        <span className="text-slate-500 text-sm">세트 {sets[0].set_number}</span>
+        <span className="text-slate-500 text-sm">세트 {displayNum}</span>
         {meta && <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${meta.color}`}>{meta.label}</span>}
       </div>
       <div className="space-y-1">
@@ -599,11 +599,11 @@ function ExerciseSetList({ sets, onUpdate, onDelete, onExpand, onExpandPaired, o
   items.sort((a, b) => a.minSetNum - b.minSetNum)
   return (
     <ul className="divide-y border rounded bg-slate-50">
-      {items.map((item) =>
+      {items.map((item, i) =>
         item.type === 'single' ? (
-          <SetRow key={item.key} set={item.data} onUpdate={onUpdate} onDelete={onDelete} onExpand={onExpand} onExpandPaired={onExpandPaired} categories={categories} onError={onError} />
+          <SetRow key={item.key} set={item.data} displayNum={i + 1} onUpdate={onUpdate} onDelete={onDelete} onExpand={onExpand} onExpandPaired={onExpandPaired} categories={categories} onError={onError} />
         ) : (
-          <DropsetGroupRow key={item.key} sets={item.data} onUpdate={onUpdate} onDelete={onDelete} onAddToGroup={onAddToGroup} onError={onError} />
+          <DropsetGroupRow key={item.key} sets={item.data} displayNum={i + 1} onUpdate={onUpdate} onDelete={onDelete} onAddToGroup={onAddToGroup} onError={onError} />
         )
       )}
     </ul>
