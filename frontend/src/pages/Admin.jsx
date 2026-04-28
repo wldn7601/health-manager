@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { fetchAdminExercises, fetchAdminStats, fetchAdminUsers, updateAdminExercise } from '../api/admin'
+import { actionExerciseRequest, fetchAdminExerciseRequests, fetchAdminExercises, fetchAdminStats, fetchAdminUsers, updateAdminExercise } from '../api/admin'
 
-const TABS = ['개요', '사용자', '운동']
+const TABS = ['개요', '사용자', '운동', '요청']
 
 export default function Admin() {
   const [tab, setTab] = useState('개요')
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState(null)
   const [exercises, setExercises] = useState(null)
+  const [requests, setRequests] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -15,6 +16,7 @@ export default function Admin() {
     if (tab === '개요' && !stats) load(fetchAdminStats, setStats)
     if (tab === '사용자' && !users) load(fetchAdminUsers, setUsers)
     if (tab === '운동' && !exercises) load(fetchAdminExercises, setExercises)
+    if (tab === '요청') load(() => fetchAdminExerciseRequests('pending'), setRequests)
   }, [tab])
 
   const load = (fetcher, setter) => {
@@ -60,6 +62,7 @@ export default function Admin() {
       {!loading && !error && tab === '개요' && stats && <StatsTab stats={stats} />}
       {!loading && !error && tab === '사용자' && users && <UsersTab users={users} />}
       {!loading && !error && tab === '운동' && exercises && <ExercisesTab exercises={exercises} />}
+      {!loading && !error && tab === '요청' && requests && <RequestsTab requests={requests} setRequests={setRequests} />}
     </section>
   )
 }
@@ -228,6 +231,63 @@ function ExercisesTab({ exercises: initialExercises }) {
               }`}
             >
               {ex.is_bodyweight ? '맨몸 ✓' : '맨몸 설정'}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RequestsTab({ requests, setRequests }) {
+  const [acting, setActing] = useState(null)
+
+  const handleAction = async (req, action) => {
+    setActing(req.id)
+    try {
+      await actionExerciseRequest(req.id, action)
+      setRequests((prev) => prev.filter((r) => r.id !== req.id))
+    } finally {
+      setActing(null)
+    }
+  }
+
+  if (requests.length === 0) {
+    return <p className="text-sm text-slate-400">대기 중인 요청이 없습니다.</p>
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-400">{requests.length}건 대기 중</p>
+      {requests.map((req) => (
+        <div key={req.id} className="bg-white rounded-xl border px-4 py-3">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <p className="font-semibold text-sm text-slate-800">{req.canonical_name}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-xs text-slate-400">{req.category}</span>
+                {req.is_bodyweight && (
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-teal-100 text-teal-700">맨몸</span>
+                )}
+                <span className="text-xs text-slate-400">요청자: {req.user}</span>
+              </div>
+            </div>
+            <span className="text-xs text-slate-300 shrink-0">{req.created_at}</span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              disabled={acting === req.id}
+              onClick={() => handleAction(req, 'approve')}
+              className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded disabled:bg-slate-300"
+            >
+              승인
+            </button>
+            <button
+              disabled={acting === req.id}
+              onClick={() => handleAction(req, 'reject')}
+              className="px-3 py-1.5 text-xs bg-white border border-red-300 text-red-500 rounded disabled:bg-slate-100"
+            >
+              거절
             </button>
           </div>
         </div>

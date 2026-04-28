@@ -108,6 +108,39 @@ class WorkoutTip(models.Model):
         ordering = ['-created_at']
 
 
+class ExerciseRequest(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, '대기'),
+        (STATUS_APPROVED, '승인'),
+        (STATUS_REJECTED, '거절'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='exercise_requests',
+    )
+    category = models.ForeignKey(
+        Category, on_delete=models.PROTECT, related_name='requests'
+    )
+    canonical_name = models.CharField(max_length=100)
+    is_bodyweight = models.BooleanField(default=False)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    exercise = models.ForeignKey(
+        Exercise, null=True, blank=True, on_delete=models.SET_NULL, related_name='requests'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'[{self.status}] {self.canonical_name} by {self.user}'
+
+
 class EmailVerificationCode(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -7,7 +7,8 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Exercise, ExerciseAlias, WorkoutSession, WorkoutSet, WorkoutTip
+from .models import Exercise, ExerciseAlias, ExerciseRequest, WorkoutSession, WorkoutSet, WorkoutTip
+from .serializers import ExerciseSerializer
 
 
 class AdminStatsView(APIView):
@@ -142,3 +143,70 @@ class AdminExerciseUpdateView(APIView):
             exercise.is_bodyweight = bool(request.data['is_bodyweight'])
             exercise.save(update_fields=['is_bodyweight'])
         return Response({'id': exercise.id, 'is_bodyweight': exercise.is_bodyweight})
+
+
+class AdminExerciseRequestListView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        reqs = (
+            ExerciseRequest.objects
+            .select_related('user', 'category', 'exercise')
+            .all()
+        )
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            reqs = reqs.filter(status=status_filter)
+
+        return Response([
+            {
+                'id': r.id,
+                'user': r.user.username,
+                'category': r.category.name,
+                'canonical_name': r.canonical_name,
+                'is_bodyweight': r.is_bodyweight,
+                'status': r.status,
+                'exercise_id': r.exercise_id,
+                'created_at': r.created_at.date().isoformat(),
+            }
+            for r in reqs
+        ])
+
+
+class AdminExerciseRequestActionView(APIView):
+    """
+    PATCH /api/admin/exercise-requests/{pk}/
+    body: { "action": "approve" | "reject" }
+    승인 시 Exercise 생성 후 요청에 연결. 거절 시 상태만 변경.
+    """
+    permission_classes = [IsAdminUser]
+
+    def patch(self, request, pk):
+        req = get_object_or_404(ExerciseRequest, pk=pk)
+        action = request.data.get('action')
+
+        if action not in ('approve', 'reject'):
+            return Response({'error': 'action은 approve 또는 reject여야 합니다.'}, status=400)
+
+        if req.status != ExerciseRequest.STATUS_PENDING:
+            return Response({'error': '이미 처리된 요청입니다.'}, status=400)
+
+        if action == 'approve':
+            from .models import ExerciseAlias
+            exercise, _ = Exercise.objects.get_or_create(
+                category=req.category,
+                canonical_name=req.canonical_name,
+                defaults={'is_bodyweight': req.is_bodyweight},
+            )
+            ExerciseAlias.objects.get_or_create(exercise=exercise, alias=exercise.canonical_name)
+            req.status = ExerciseRequest.STATUS_APPROVED
+            req.exercise = exercise
+            req.save(update_fields=['status', 'exercise'])
+            return Response({
+                'status': req.status,
+                'exercise': ExerciseSerializer(exercise).data,
+            })
+        else:
+            req.status = ExerciseRequest.STATUS_REJECTED
+            req.save(update_fields=['status'])
+            return Response({'status': req.status})

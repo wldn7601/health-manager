@@ -70,3 +70,6 @@ export const deleteSet = (id) =>
 
 export const addDropToGroup = (id, { weight, reps }) =>
   client.post(`/sets/${id}/add_to_group/`, { weight, reps }).then((r) => r.data)
+
+export const createExerciseRequest = ({ category, canonical_name, is_bodyweight }) =>
+  client.post('/exercise-requests/', { category, canonical_name, is_bodyweight }).then((r) => r.data)

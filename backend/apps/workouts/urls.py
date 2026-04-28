@@ -1,6 +1,13 @@
 from django.urls import path
 
-from .admin_views import AdminExerciseListView, AdminExerciseUpdateView, AdminStatsView, AdminUserListView
+from .admin_views import (
+    AdminExerciseListView,
+    AdminExerciseRequestActionView,
+    AdminExerciseRequestListView,
+    AdminExerciseUpdateView,
+    AdminStatsView,
+    AdminUserListView,
+)
 from .views import (
     AddDropToGroupView,
     CategoryListView,
@@ -8,6 +15,7 @@ from .views import (
     ExerciseHistoryView,
     ExerciseListCreateView,
     ExerciseProgressView,
+    ExerciseRequestCreateView,
     ExerciseSearchView,
     ExerciseTipsView,
     ExpandToDropsetView,
@@ -51,4 +59,7 @@ urlpatterns = [
     path('admin/users/', AdminUserListView.as_view(), name='admin-users'),
     path('admin/exercises/', AdminExerciseListView.as_view(), name='admin-exercises'),
     path('admin/exercises/<int:pk>/', AdminExerciseUpdateView.as_view(), name='admin-exercise-update'),
+    path('admin/exercise-requests/', AdminExerciseRequestListView.as_view(), name='admin-exercise-requests'),
+    path('admin/exercise-requests/<int:pk>/', AdminExerciseRequestActionView.as_view(), name='admin-exercise-request-action'),
+    path('exercise-requests/', ExerciseRequestCreateView.as_view(), name='exercise-request-create'),
 ]

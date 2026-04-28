@@ -4,6 +4,7 @@ from .models import (
     Category,
     Exercise,
     ExerciseAlias,
+    ExerciseRequest,
     WorkoutSession,
     WorkoutSet,
     WorkoutTip,
@@ -61,3 +62,10 @@ class WorkoutSetAdmin(admin.ModelAdmin):
 class WorkoutTipAdmin(admin.ModelAdmin):
     list_display = ('id', 'exercise', 'session', 'created_at')
     search_fields = ('content',)
+
+
+@admin.register(ExerciseRequest)
+class ExerciseRequestAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'category', 'canonical_name', 'is_bodyweight', 'status', 'created_at')
+    list_filter = ('status', 'category')
+    search_fields = ('canonical_name',)

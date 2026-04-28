@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   addDropToGroup,
-  createExercise,
+  createExerciseRequest,
   createGroupedSets,
   createSession,
   createSet,
@@ -226,7 +226,6 @@ function ExercisePicker({ category, onPick, onError }) {
   const debounced = useDebounce(query, 300)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [isBodyweight, setIsBodyweight] = useState(false)
 
   useEffect(() => {
     if (!debounced.trim()) { setResult(null); return }
@@ -236,22 +235,6 @@ function ExercisePicker({ category, onPick, onError }) {
       .catch((e) => onError(String(e)))
       .finally(() => setLoading(false))
   }, [debounced, category.id, onError])
-
-  const handleRegisterNew = async () => {
-    try {
-      const ex = await createExercise({ category: category.id, canonical_name: query.trim(), is_bodyweight: isBodyweight })
-      onPick({ ...ex, aliases: [ex.canonical_name] })
-    } catch (e) {
-      onError(String(e))
-    }
-  }
-
-  const BodyweightToggle = () => (
-    <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer mt-2">
-      <input type="checkbox" checked={isBodyweight} onChange={(e) => setIsBodyweight(e.target.checked)} />
-      맨몸 운동 (중량 없이 기록)
-    </label>
-  )
 
   return (
     <div className="mb-6 bg-white rounded-lg border p-4">
@@ -275,18 +258,61 @@ function ExercisePicker({ category, onPick, onError }) {
           </p>
           <div className="flex gap-2 mt-2">
             <button onClick={() => onPick(result.matched)} className="px-3 py-1 text-sm bg-blue-600 text-white rounded">예, 맞아요</button>
-            <button onClick={handleRegisterNew} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded">아니요, "{query.trim()}"로 새로 등록</button>
+            <button onClick={() => setResult(null)} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded">아니요, 다시 검색</button>
           </div>
-          <BodyweightToggle />
         </div>
       )}
       {result && !loading && result.is_new && query.trim() && (
-        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded">
-          <p className="text-sm text-slate-700">"<span className="font-semibold">{query.trim()}</span>" 는 처음 보는 운동이에요.</p>
-          <BodyweightToggle />
-          <button onClick={handleRegisterNew} className="mt-2 px-3 py-1 text-sm bg-amber-600 text-white rounded">새 운동으로 등록</button>
-        </div>
+        <ExerciseRequestForm
+          categoryId={category.id}
+          initialName={query.trim()}
+          onError={onError}
+        />
       )}
+    </div>
+  )
+}
+
+function ExerciseRequestForm({ categoryId, initialName, onError }) {
+  const [isBodyweight, setIsBodyweight] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  if (submitted) {
+    return (
+      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+        <p className="text-sm text-green-700 font-medium">요청이 전달됐습니다.</p>
+        <p className="text-xs text-green-600 mt-0.5">관리자 승인 후 운동이 추가됩니다.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded">
+      <p className="text-sm text-slate-700 mb-2">
+        "<span className="font-semibold">{initialName}</span>" 은 등록된 운동이 없어요.
+      </p>
+      <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer mb-3">
+        <input type="checkbox" checked={isBodyweight} onChange={(e) => setIsBodyweight(e.target.checked)} />
+        맨몸 운동 (중량 없이 기록)
+      </label>
+      <button
+        disabled={saving}
+        onClick={async () => {
+          setSaving(true)
+          try {
+            await createExerciseRequest({ category: categoryId, canonical_name: initialName, is_bodyweight: isBodyweight })
+            setSubmitted(true)
+          } catch (e) {
+            onError(String(e))
+          } finally {
+            setSaving(false)
+          }
+        }}
+        className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded disabled:bg-slate-300"
+      >
+        관리자에게 추가 요청
+      </button>
     </div>
   )
 }
@@ -297,7 +323,6 @@ function MiniExercisePicker({ categories, excludeId, onPick, onError }) {
   const debounced = useDebounce(query, 300)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [isBodyweight, setIsBodyweight] = useState(false)
 
   useEffect(() => {
     if (categories.length > 0 && !selectedCat) setSelectedCat(categories[0])
@@ -311,15 +336,6 @@ function MiniExercisePicker({ categories, excludeId, onPick, onError }) {
       .catch((e) => onError(String(e)))
       .finally(() => setLoading(false))
   }, [debounced, selectedCat?.id, onError])
-
-  const handleRegisterNew = async () => {
-    try {
-      const ex = await createExercise({ category: selectedCat.id, canonical_name: query.trim(), is_bodyweight: isBodyweight })
-      onPick({ ...ex, aliases: [ex.canonical_name] })
-    } catch (e) {
-      onError(String(e))
-    }
-  }
 
   return (
     <div className="bg-slate-50 rounded border p-2 space-y-2">
@@ -353,28 +369,12 @@ function MiniExercisePicker({ categories, excludeId, onPick, onError }) {
             <span className="font-semibold">{result.matched.canonical_name}</span>{' '}
             <span className="text-slate-400">(일치도 {Math.round(result.score)})</span>
           </p>
-          <div className="flex gap-1 mt-1">
-            <button type="button" onClick={() => onPick(result.matched)}
-              className="px-2 py-0.5 text-xs bg-blue-600 text-white rounded">선택</button>
-            <button type="button" onClick={handleRegisterNew}
-              className="px-2 py-0.5 text-xs border rounded text-slate-600">"{query.trim()}"으로 새로 등록</button>
-          </div>
-          <label className="flex items-center gap-1 text-xs text-slate-600 cursor-pointer mt-1.5">
-            <input type="checkbox" checked={isBodyweight} onChange={(e) => setIsBodyweight(e.target.checked)} />
-            맨몸 운동
-          </label>
+          <button type="button" onClick={() => onPick(result.matched)}
+            className="mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded">선택</button>
         </div>
       )}
       {result && !loading && result.is_new && query.trim() && (
-        <div className="p-2 bg-amber-50 border border-amber-200 rounded">
-          <p className="text-xs text-slate-700">새 운동 "<span className="font-semibold">{query.trim()}</span>"</p>
-          <label className="flex items-center gap-1 text-xs text-slate-600 cursor-pointer mt-1.5">
-            <input type="checkbox" checked={isBodyweight} onChange={(e) => setIsBodyweight(e.target.checked)} />
-            맨몸 운동
-          </label>
-          <button type="button" onClick={handleRegisterNew}
-            className="mt-1 px-2 py-0.5 text-xs bg-amber-600 text-white rounded">새 운동으로 등록</button>
-        </div>
+        <p className="text-xs text-slate-400">"{query.trim()}"에 해당하는 운동이 없습니다.</p>
       )}
     </div>
   )

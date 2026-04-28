@@ -3,12 +3,14 @@ from datetime import date, timedelta
 from django.db.models import Avg, Count, F, Max, Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import (
     Category,
     Exercise,
+    ExerciseRequest,
     WorkoutSession,
     WorkoutSet,
 )
@@ -32,6 +34,11 @@ class CategoryListView(generics.ListAPIView):
 
 class ExerciseListCreateView(generics.ListCreateAPIView):
     pagination_class = None
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         qs = Exercise.objects.prefetch_related('aliases').all()
@@ -435,3 +442,38 @@ class ExerciseProgressView(APIView):
             for r in rows
         ]
         return Response({'exercise': ExerciseSerializer(exercise).data, 'data': data})
+
+
+class ExerciseRequestCreateView(APIView):
+    """
+    POST /api/exercise-requests/
+    사용자가 새 운동 추가를 요청. 관리자 승인 후 실제 Exercise로 등록됨.
+    """
+
+    def post(self, request):
+        category_id = request.data.get('category')
+        canonical_name = request.data.get('canonical_name', '').strip()
+        is_bodyweight = bool(request.data.get('is_bodyweight', False))
+
+        if not category_id or not canonical_name:
+            return Response({'error': '카테고리와 운동명을 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        category = get_object_or_404(Category, pk=category_id)
+
+        # 이미 같은 이름으로 대기 중인 요청이 있으면 중복 방지
+        if ExerciseRequest.objects.filter(
+            category=category, canonical_name__iexact=canonical_name, status=ExerciseRequest.STATUS_PENDING
+        ).exists():
+            return Response({'error': '이미 동일한 운동 추가 요청이 대기 중입니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        req = ExerciseRequest.objects.create(
+            user=request.user,
+            category=category,
+            canonical_name=canonical_name,
+            is_bodyweight=is_bodyweight,
+        )
+        return Response({
+            'id': req.id,
+            'canonical_name': req.canonical_name,
+            'status': req.status,
+        }, status=status.HTTP_201_CREATED)
