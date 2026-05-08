@@ -719,6 +719,12 @@ function ExerciseSetList({ sets, onUpdate, onDelete, onExpand, onExpandPaired, o
   )
 }
 
+const logicalSetCount = (sets) => {
+  const ungrouped = sets.filter((s) => s.group_id == null).length
+  const groups = new Set(sets.filter((s) => s.group_id != null).map((s) => s.group_id)).size
+  return ungrouped + groups
+}
+
 function ExerciseSetPanel({ exercise, sets, categories, onAddSet, onAddGrouped, onUpdateSet, onDeleteSet, onExpandSet, onExpandPairedSet, onAddToGroup, onAddTip, onDone, onError }) {
   const [setType, setSetType] = useState('normal')
   const [weight, setWeight] = useState('')
@@ -874,7 +880,7 @@ function ExerciseSetPanel({ exercise, sets, categories, onAddSet, onAddGrouped, 
           </div>
           <button type="submit" disabled={saving}
             className="px-4 py-2 bg-blue-600 text-white text-sm rounded disabled:bg-slate-300">
-            {sets.length + 1}세트 추가
+            {logicalSetCount(sets) + 1}세트 추가
           </button>
         </form>
       )}
@@ -1025,7 +1031,7 @@ function SessionSummary({ sets, onUpdateSet, onDeleteSet, onExpandSet, onExpandP
   return (
     <div className="mt-6 bg-slate-100 rounded-lg p-4">
       <h2 className="text-sm font-semibold text-slate-600 mb-3">
-        오늘 누적 기록 ({sets.length}세트)
+        오늘 누적 기록 ({logicalSetCount(sets)}세트)
       </h2>
       <ul className="text-sm space-y-3">
         {Object.entries(byExercise).map(([name, ss]) => (
